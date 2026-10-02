@@ -28,6 +28,7 @@ export function App() {
   // Default to English as requested: "app english language me open hona chahiye or english me he sab kuch ho"
   const [lang, setLang] = useState<SupportedLanguage>('en');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeminiLoading, setIsGeminiLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showComplaintDraft, setShowComplaintDraft] = useState(false);
   const [showNomineeTracker, setShowNomineeTracker] = useState(false);
@@ -35,6 +36,33 @@ export function App() {
   const [showRawInput, setShowRawInput] = useState(false);
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
+  const triggerGeminiEnrichment = (result: AnalysisResult) => {
+    if (!isGeminiAiActive()) return;
+    setIsGeminiLoading(true);
+    const detectedSignals = result.evidenceCards.map((c) => `${c.category}: ${c.evidence}`);
+    analyzeWithGemini(result.sanitizedInput, detectedSignals)
+      .then((geminiInsights) => {
+        if (geminiInsights) {
+          setAnalysisResult((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  geminiInsights,
+                  hindiExplanation: geminiInsights.aiExplanationHi || prev.hindiExplanation,
+                  whyItMattersSummary: geminiInsights.aiAnalysis || prev.whyItMattersSummary
+                }
+              : null
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('Gemini non-blocking enrichment error:', err);
+      })
+      .finally(() => {
+        setIsGeminiLoading(false);
+      });
+  };
 
   const handleStartAnalysis = (
     input: string,
@@ -48,25 +76,9 @@ export function App() {
 
     // 2. If Gemini Generative AI key is available, run live contextual enrichment
     if (isGeminiAiActive()) {
-      try {
-        const detectedSignals = result.evidenceCards.map((c) => `${c.category}: ${c.evidence}`);
-        analyzeWithGemini(result.sanitizedInput, detectedSignals).then((geminiInsights) => {
-          if (geminiInsights) {
-            setAnalysisResult((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    geminiInsights,
-                    hindiExplanation: geminiInsights.aiExplanationHi || prev.hindiExplanation,
-                    whyItMattersSummary: geminiInsights.aiAnalysis || prev.whyItMattersSummary
-                  }
-                : null
-            );
-          }
-        });
-      } catch (err) {
-        console.warn('Gemini non-blocking enrichment error:', err);
-      }
+      triggerGeminiEnrichment(result);
+    } else {
+      setIsGeminiLoading(false);
     }
   };
 
@@ -175,12 +187,13 @@ export function App() {
                 <RiskAssessmentCard result={analysisResult} lang={lang} />
 
                 {/* LIVE GENERATIVE AI REASONING (Google Gemini 1.5 Flash - Flaw 1 Solution) */}
-                {analysisResult.geminiInsights && (
-                  <GeminiLiveInsightsCard
-                    insights={analysisResult.geminiInsights}
-                    lang={lang}
-                  />
-                )}
+                <GeminiLiveInsightsCard
+                  insights={analysisResult.geminiInsights}
+                  isLoading={isGeminiLoading}
+                  isConfigured={isGeminiAiActive()}
+                  onOpenConfig={() => setShowAiConfig(true)}
+                  lang={lang}
+                />
 
                 {/* 2. "Why?" - Individual Evidence Cards Grid (Identity, URL, Language, Urgency, Payment, Regulatory) */}
                 <EvidenceCardsGrid cards={analysisResult.evidenceCards} lang={lang} />
@@ -247,6 +260,11 @@ export function App() {
       {showAiConfig && (
         <GeminiApiKeyModal
           onClose={() => setShowAiConfig(false)}
+          onKeySaved={() => {
+            if (analysisResult) {
+              triggerGeminiEnrichment(analysisResult);
+            }
+          }}
         />
       )}
 

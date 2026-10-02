@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { X, Sparkles, Key, CheckCircle2, ShieldCheck, ExternalLink, Cpu, AlertCircle, RefreshCw, Zap } from 'lucide-react';
-import { getGeminiApiKey, setGeminiApiKey, pingGeminiConnection } from '../engine/geminiAiService';
+import { getGeminiApiKey, setGeminiApiKey, pingGeminiConnection, formatDisplayName, getStoredGeminiModel } from '../engine/geminiAiService';
 
 interface GeminiApiKeyModalProps {
   onClose: () => void;
+  onKeySaved?: () => void;
 }
 
-export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
+export function GeminiApiKeyModal({ onClose, onKeySaved }: GeminiApiKeyModalProps) {
   const [apiKey, setApiKey] = useState('');
   const [isSaved, setIsSaved] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [detectedModel, setDetectedModel] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     latencyMs: number;
+    modelUsed?: string;
     message: string;
   } | null>(null);
 
@@ -20,6 +23,10 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
     const existing = getGeminiApiKey();
     if (existing) {
       setApiKey(existing);
+    }
+    const model = getStoredGeminiModel();
+    if (model) {
+      setDetectedModel(formatDisplayName(model));
     }
   }, []);
 
@@ -39,11 +46,17 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
     const result = await pingGeminiConnection(apiKey.trim());
     setIsTesting(false);
     setTestResult(result);
+    if (result.success && result.modelUsed) {
+      setDetectedModel(result.modelUsed);
+    }
   };
 
   const handleSave = () => {
     setGeminiApiKey(apiKey.trim());
     setIsSaved(true);
+    if (onKeySaved) {
+      onKeySaved();
+    }
     setTimeout(() => {
       setIsSaved(false);
       onClose();
@@ -54,6 +67,7 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
     setGeminiApiKey('');
     setApiKey('');
     setTestResult(null);
+    setDetectedModel(null);
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);
@@ -73,7 +87,7 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-bold">Hybrid AI Engine Configuration</h3>
-              <p className="text-[11px] text-indigo-200">Google Gemini 1.5 Flash + Symbolic Guardrails</p>
+              <p className="text-[11px] text-indigo-200">Google Gemini Pro / Flash + Symbolic Guardrails</p>
             </div>
           </div>
           <button
@@ -95,7 +109,7 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
             <div className="flex items-center space-x-2">
               <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-500'}`} />
               <span className="font-bold text-xs">
-                {isConnected ? 'Gemini 1.5 Flash Configured ⚡' : 'Symbolic Deterministic Guardrail Mode Active 🛡️'}
+                {isConnected ? `${detectedModel || 'Google Gemini Pro / Flash'} Configured ⚡` : 'Symbolic Deterministic Guardrail Mode Active 🛡️'}
               </span>
             </div>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white font-bold border border-slate-200">
