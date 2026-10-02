@@ -3,6 +3,23 @@ import { SupportedLanguage } from '../types';
 export class VoiceNarrator {
   private static synth: SpeechSynthesis | null = typeof window !== 'undefined' ? window.speechSynthesis : null;
   private static currentUtterance: SpeechSynthesisUtterance | null = null;
+  private static cachedVoices: SpeechSynthesisVoice[] = [];
+
+  static {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const loadVoices = () => {
+        try {
+          VoiceNarrator.cachedVoices = window.speechSynthesis.getVoices();
+        } catch (e) {
+          // ignore
+        }
+      };
+      loadVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+  }
 
   public static isSupported(): boolean {
     return typeof window !== 'undefined' && 'speechSynthesis' in window;
@@ -11,30 +28,68 @@ export class VoiceNarrator {
   public static speak(text: string, lang: SupportedLanguage = 'en', onEnd?: () => void): boolean {
     if (!this.synth) return false;
 
-    // Cancel ongoing speech
+    // Cancel any ongoing speech
     this.stop();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Map language code to BCP 47
+    // 1. Refresh available voices on this machine
+    let voices = this.synth.getVoices();
+    if (!voices || voices.length === 0) {
+      voices = this.cachedVoices;
+    }
+
+    // 2. Find best matching voice for the target language
+    let matchedVoice: SpeechSynthesisVoice | undefined;
     let bcpCode = 'en-IN';
-    if (lang === 'hi') bcpCode = 'hi-IN';
-    else if (lang === 'bn') bcpCode = 'bn-IN';
-    else if (lang === 'as') bcpCode = 'as-IN';
 
+    if (lang === 'hi') {
+      matchedVoice = voices.find(v => {
+        const c = v.lang.toLowerCase();
+        const n = v.name.toLowerCase();
+        return c.startsWith('hi') || n.includes('hindi') || n.includes('swara') || n.includes('madhur');
+      });
+      bcpCode = 'hi-IN';
+    } else if (lang === 'bn') {
+      matchedVoice = voices.find(v => {
+        const c = v.lang.toLowerCase();
+        const n = v.name.toLowerCase();
+        return c.startsWith('bn') || n.includes('bengali') || n.includes('bangla') || n.includes('tapan');
+      });
+      bcpCode = 'bn-IN';
+    } else if (lang === 'as') {
+      matchedVoice = voices.find(v => {
+        const c = v.lang.toLowerCase();
+        const n = v.name.toLowerCase();
+        return c.startsWith('as') || n.includes('assamese') || c.startsWith('bn') || n.includes('bengali');
+      });
+      bcpCode = 'as-IN';
+    }
+
+    // 3. CRITICAL BHARAT VOICE FALLBACK:
+    // Windows/Linux desktop browsers rarely have native Bengali or Assamese TTS voice packs installed by default.
+    // If the exact voice is missing, fallback to Indian Hindi (hi-IN) or Indian English (en-IN).
+    // MUST set utterance.lang to the fallback voice's actual language to prevent Chromium from aborting with 'language-unavailable'!
+    if (!matchedVoice) {
+      matchedVoice = voices.find(v => {
+        const c = v.lang.toLowerCase();
+        const n = v.name.toLowerCase();
+        return c.startsWith('hi') || n.includes('hindi') || n.includes('swara');
+      }) || voices.find(v => {
+        const c = v.lang.toLowerCase();
+        const n = v.name.toLowerCase();
+        return c.includes('en-in') || n.includes('india') || n.includes('heera') || n.includes('ravi');
+      }) || voices.find(v => v.lang.toLowerCase().startsWith('en')) || voices[0];
+
+      if (matchedVoice) {
+        bcpCode = matchedVoice.lang;
+      }
+    } else {
+      bcpCode = matchedVoice.lang;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = bcpCode;
-    utterance.rate = 0.95; // Calm cadence for Bharat retail investors
+    utterance.rate = 0.92; // Calm, respectful pacing for Bharat investors
     utterance.pitch = 1.0;
-
-    // Pick best matching voice
-    const voices = this.synth.getVoices();
-    let matchedVoice = voices.find(v => {
-      const code = v.lang.toLowerCase();
-      if (lang === 'hi') return code.includes('hi') || v.name.toLowerCase().includes('hindi');
-      if (lang === 'bn') return code.includes('bn') || code.includes('ben') || v.name.toLowerCase().includes('bengali');
-      if (lang === 'as') return code.includes('as') || code.includes('asm') || code.includes('bn') || v.name.toLowerCase().includes('assamese');
-      return code.includes('en-in') || code.includes('en') || v.name.toLowerCase().includes('india');
-    });
 
     if (matchedVoice) {
       utterance.voice = matchedVoice;
@@ -45,19 +100,30 @@ export class VoiceNarrator {
       if (onEnd) onEnd();
     };
 
-    utterance.onerror = () => {
+    utterance.onerror = (e) => {
+      console.warn('[SANGYAN Kavach Voice] Speech utterance error or completed:', e);
       this.currentUtterance = null;
       if (onEnd) onEnd();
     };
 
     this.currentUtterance = utterance;
-    this.synth.speak(utterance);
-    return true;
+    try {
+      this.synth.speak(utterance);
+      return true;
+    } catch (err) {
+      console.warn('[SANGYAN Kavach Voice] Speech playback error:', err);
+      if (onEnd) onEnd();
+      return false;
+    }
   }
 
   public static stop(): void {
     if (this.synth) {
-      this.synth.cancel();
+      try {
+        this.synth.cancel();
+      } catch (e) {
+        // ignore
+      }
       this.currentUtterance = null;
     }
   }

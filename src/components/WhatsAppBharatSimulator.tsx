@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, Phone, Video, MoreVertical, ShieldAlert, CheckCheck, Play, Pause, Volume2, ArrowRight, Sparkles, AlertCircle } from 'lucide-react';
 import { SupportedLanguage } from '../types';
+import { VoiceNarrator } from '../engine/voiceNarrator';
 
 interface WhatsAppBharatSimulatorProps {
   onSelectSampleForAnalysis: (text: string, type: 'text' | 'image' | 'url') => void;
@@ -48,10 +49,36 @@ const SAMPLE_FORWARDS = [
 export function WhatsAppBharatSimulator({ onSelectSampleForAnalysis, lang }: WhatsAppBharatSimulatorProps) {
   const [selectedSample, setSelectedSample] = useState<typeof SAMPLE_FORWARDS[0]>(SAMPLE_FORWARDS[0]);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [customInput, setCustomInput] = useState('');
   const isHindi = lang === 'hi';
 
   const handleToggleAudio = () => {
-    setIsPlayingAudio(!isPlayingAudio);
+    if (isPlayingAudio) {
+      VoiceNarrator.stop();
+      setIsPlayingAudio(false);
+    } else {
+      const speechText = isHindi ? selectedSample.botReplyHi : selectedSample.botReplyEn;
+      const started = VoiceNarrator.speak(speechText, lang, () => {
+        setIsPlayingAudio(false);
+      });
+      if (started) setIsPlayingAudio(true);
+    }
+  };
+
+  const handleSendCustomMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!customInput.trim()) return;
+    const userMsg = customInput.trim();
+    setCustomInput('');
+    setSelectedSample({
+      id: 'custom-' + Date.now(),
+      title: 'Custom Forwarded Message',
+      titleHi: 'कस्टम फॉरवर्डेड संदेश',
+      text: userMsg,
+      botReplyHi: 'संज्ञान कवच जांच: इस संदेश में अनधिकृत वित्तीय दावों या जोखिम की संभावना हो सकती है। विस्तृत जांच के लिए नीचे दिए गए बटन पर क्लिक करें।',
+      botReplyEn: 'SANGYAN Kavach Alert: Message submitted for verification. Potential unverified market claims detected. Click below to view the official SEBI investigation dossier.'
+    });
+    setIsPlayingAudio(false);
   };
 
   const handleAnalyzeInFullEngine = () => {
@@ -196,18 +223,24 @@ export function WhatsAppBharatSimulator({ onSelectSampleForAnalysis, lang }: Wha
           </div>
         </div>
 
-        {/* Input bar preview */}
-        <div className="bg-white p-2 rounded-2xl flex items-center space-x-2 border border-slate-200 shadow-xs">
+        {/* Interactive Custom Input Bar */}
+        <form onSubmit={handleSendCustomMessage} className="bg-white p-2 rounded-2xl flex items-center space-x-2 border border-slate-200 shadow-xs">
           <input
             type="text"
-            readOnly
-            value={isHindi ? 'व्हाट्सएप पर फॉरवर्ड जांचने के लिए ऊपर दिए गए उदाहरण पर क्लिक करें...' : 'Click any preset above to test real-time WhatsApp forwarding response...'}
-            className="flex-1 text-xs text-slate-500 bg-transparent px-2 outline-none font-sans"
+            value={customInput}
+            onChange={(e) => setCustomInput(e.target.value)}
+            placeholder={isHindi ? 'अपना संदेश यहां टाइप करें या ऊपर का उदाहरण चुनें...' : 'Type or paste any suspicious WhatsApp message to simulate live bot...'}
+            className="flex-1 text-xs text-slate-800 bg-transparent px-3 py-1.5 outline-none font-sans"
           />
-          <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center">
-            <Send className="w-3.5 h-3.5" />
-          </div>
-        </div>
+          <button
+            type="submit"
+            disabled={!customInput.trim()}
+            className="w-9 h-9 rounded-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white flex items-center justify-center cursor-pointer transition-colors shrink-0 shadow-xs"
+            title="Send"
+          >
+            <Send className="w-4 h-4 ml-0.5" />
+          </button>
+        </form>
       </div>
     </div>
   );

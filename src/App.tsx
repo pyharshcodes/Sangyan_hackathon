@@ -37,23 +37,40 @@ export function App() {
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
-  const triggerGeminiEnrichment = (result: AnalysisResult) => {
+  const triggerGeminiEnrichment = (result: AnalysisResult, imagePreviewUrl?: string) => {
     if (!isGeminiAiActive()) return;
     setIsGeminiLoading(true);
     const detectedSignals = result.evidenceCards.map((c) => `${c.category}: ${c.evidence}`);
-    analyzeWithGemini(result.sanitizedInput, detectedSignals)
+    analyzeWithGemini(result.sanitizedInput, detectedSignals, imagePreviewUrl)
       .then((geminiInsights) => {
         if (geminiInsights) {
-          setAnalysisResult((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  geminiInsights,
-                  hindiExplanation: geminiInsights.aiExplanationHi || prev.hindiExplanation,
-                  whyItMattersSummary: geminiInsights.aiAnalysis || prev.whyItMattersSummary
-                }
-              : null
-          );
+          setAnalysisResult((prev) => {
+            if (!prev) return null;
+            const isScam =
+              geminiInsights.riskLevel === 'Critical' ||
+              geminiInsights.riskLevel === 'High' ||
+              (geminiInsights.manipulationTriggers && geminiInsights.manipulationTriggers.length > 0);
+
+            // If it was an image and Gemini detected high risk, elevate the overallAssessment
+            const updatedAssessment =
+              prev.inputType === 'image' && isScam
+                ? (geminiInsights.riskLevel || 'Critical')
+                : prev.overallAssessment;
+
+            const updatedScore =
+              prev.inputType === 'image' && isScam
+                ? Math.max(prev.heuristicScore, geminiInsights.confidenceScore || 92)
+                : prev.heuristicScore;
+
+            return {
+              ...prev,
+              geminiInsights,
+              overallAssessment: updatedAssessment,
+              heuristicScore: updatedScore,
+              hindiExplanation: geminiInsights.aiExplanationHi || prev.hindiExplanation,
+              whyItMattersSummary: geminiInsights.aiAnalysis || prev.whyItMattersSummary
+            };
+          });
         }
       })
       .catch((err) => {
@@ -74,9 +91,9 @@ export function App() {
     const result = runSangyanAnalysis(input, type, imagePreviewUrl);
     setAnalysisResult(result);
 
-    // 2. If Gemini Generative AI key is available, run live contextual enrichment
+    // 2. If Gemini Generative AI key is available, run live contextual enrichment with multimodal image data
     if (isGeminiAiActive()) {
-      triggerGeminiEnrichment(result);
+      triggerGeminiEnrichment(result, imagePreviewUrl);
     } else {
       setIsGeminiLoading(false);
     }

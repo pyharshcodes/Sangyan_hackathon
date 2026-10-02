@@ -19,6 +19,7 @@ export interface GeminiAiResponse {
   confidenceScore: number;
   modelUsed: string;
   latencyMs: number;
+  riskLevel?: 'Critical' | 'High' | 'Needs Verification' | 'Low';
 }
 
 /**
@@ -283,7 +284,8 @@ export async function pingGeminiConnection(keyToTest?: string): Promise<{
  */
 export async function analyzeWithGemini(
   sanitizedText: string,
-  detectedSignals: string[]
+  detectedSignals: string[],
+  imageDataUrl?: string
 ): Promise<GeminiAiResponse | null> {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
@@ -303,7 +305,9 @@ MANDATORY GUARDRAILS:
 2. NEVER give financial return forecasts.
 3. Your purpose is strictly investor safety, deception detection, and psychological manipulation defense.
 
-ANALYZE THIS INVESTOR MESSAGE/CLAIM:
+${imageDataUrl ? 'A USER HAS UPLOADED A SCREENSHOT TO VERIFY. Perform thorough visual analysis on the image: inspect all text, stamps, fake SEBI certificates, guaranteed profits, VIP groups, WhatsApp/Telegram tips, withdrawal fees, or Demat phishing.' : ''}
+
+ANALYZE THIS INVESTOR MESSAGE/CLAIM OR SCREENSHOT:
 "${sanitizedText}"
 
 DETECTED SIGNALS BY DETERMINISTIC GUARDRAIL ENGINE:
@@ -311,10 +315,11 @@ ${detectedSignals.join(', ')}
 
 Respond ONLY in valid JSON with this exact structure:
 {
-  "aiAnalysis": "A 2-3 sentence analytical explanation of why this message is deceptive, highlighting the psychological trap (FOMO, fake authority, urgency) and SEBI intermediary violations.",
+  "aiAnalysis": "A 2-3 sentence analytical explanation of why this message or screenshot is deceptive, highlighting the psychological trap (FOMO, fake authority, urgency) and SEBI intermediary violations.",
   "aiExplanationHi": "आसान हिंदी में 2-3 वाक्यों में समझाइए कि यह कैसे धोखा है और आम भारतीय परिवार के लिए एक आसान देहाती/व्यावहारिक उदाहरण दीजिए।",
   "manipulationTriggers": ["Array of 2-3 specific manipulation techniques used, e.g. Artificial Scarcity, Sunk Cost Trap, Forged Regulatory Proof"],
   "regulatoryViolationNotes": "Specific reference to SEBI regulations violated (e.g. SEBI Research Analyst Reg 2014, Prohibition of Fraudulent and Unfair Trade Practices PFUTP 2003, or BUDS Act 2019).",
+  "riskLevel": "Critical",
   "confidenceScore": 95
 }`;
 
@@ -322,7 +327,22 @@ Respond ONLY in valid JSON with this exact structure:
     const startTime = Date.now();
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 9000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      // Construct multimodal parts if image data URL is provided
+      const parts: any[] = [];
+      if (imageDataUrl && imageDataUrl.startsWith('data:image/')) {
+        const matches = imageDataUrl.match(/^data:(image\/[a-zA-Z0-9.+_-]+);base64,(.+)$/);
+        if (matches && matches[1] && matches[2]) {
+          parts.push({
+            inlineData: {
+              mimeType: matches[1],
+              data: matches[2]
+            }
+          });
+        }
+      }
+      parts.push({ text: prompt });
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
@@ -332,11 +352,7 @@ Respond ONLY in valid JSON with this exact structure:
         },
         signal: controller.signal,
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }]
-            }
-          ],
+          contents: [{ parts }],
           generationConfig: {
             temperature: 0.1,
             responseMimeType: 'application/json'
@@ -376,9 +392,12 @@ Respond ONLY in valid JSON with this exact structure:
           aiExplanationHi: 'जेमिनी ने इस सामग्री में मनोवैज्ञानिक दबाव व अनधिकृत वित्तीय दावों की पुष्टि की है।',
           manipulationTriggers: ['Psychological Urgency', 'Unverified Financial Claim'],
           regulatoryViolationNotes: 'SEBI Intermediary Regulations and Investor Safety Advisory.',
-          confidenceScore: 94
+          confidenceScore: 94,
+          riskLevel: 'Critical'
         };
       }
+
+      const assignedRisk = parsed.riskLevel || (parsed.confidenceScore > 80 ? 'Critical' : 'Needs Verification');
 
       return {
         aiAnalysis: parsed.aiAnalysis || 'Deceptive financial manipulation detected by Gemini.',
@@ -387,6 +406,7 @@ Respond ONLY in valid JSON with this exact structure:
         regulatoryViolationNotes: parsed.regulatoryViolationNotes || 'SEBI Intermediary Regulations.',
         confidenceScore: parsed.confidenceScore || 94,
         modelUsed: displayModel,
+        riskLevel: assignedRisk,
         latencyMs
       };
     } catch (err) {

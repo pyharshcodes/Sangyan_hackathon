@@ -97,11 +97,6 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Revoke previous blob URL to prevent memory leaks
-    if (imagePreviewUrl && imagePreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviewUrl);
-    }
-
     // Strict Safe File Validation (Size <= 5MB, MIME, Extensions, Magic Bytes)
     const fileCheck = await validateUploadedFile(file);
     if (!fileCheck.isValid) {
@@ -112,88 +107,48 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
 
     setGuardrailAlert(null);
     setSelectedImageName(fileCheck.sanitizedName);
-    const objectUrl = URL.createObjectURL(file);
-    setImagePreviewUrl(objectUrl);
 
-    // Intelligent OCR extraction simulation based on file metadata & document characteristics
+    // Convert file to Base64 Data URL so Google Gemini Multimodal AI can visually inspect the pixels
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64DataUrl = event.target?.result as string;
+      setImagePreviewUrl(base64DataUrl);
+    };
+    reader.readAsDataURL(file);
+
+    // Check if this is a known offline testing demo preset file
     const lowerName = fileCheck.sanitizedName.toLowerCase();
     let extractedText = '';
 
-    if (
-      lowerName.includes('jee') ||
-      lowerName.includes('marksheet') ||
-      lowerName.includes('scorecard') ||
-      lowerName.includes('result') ||
-      lowerName.includes('cbse') ||
-      lowerName.includes('nta') ||
-      lowerName.includes('transcript')
-    ) {
+    if (lowerName.includes('demo_jee') || lowerName.includes('demo_marksheet')) {
       extractedText = `National Testing Agency (NTA) - Joint Entrance Examination (JEE Main) Score Card
 Candidate Name: Candidate
 Roll Number: 240310123456
 Physics: 98.4 Percentile | Chemistry: 96.2 Percentile | Mathematics: 99.1 Percentile
 Total NTA Score: 98.65 Percentile
 Status: Qualified for JEE Advanced`;
-    } else if (
-      lowerName.includes('selfie') ||
-      lowerName.includes('photo') ||
-      lowerName.includes('portrait') ||
-      lowerName.includes('pic') ||
-      lowerName.includes('me') ||
-      lowerName.includes('face') ||
-      lowerName.includes('camera')
-    ) {
-      extractedText = `[Personal photograph - No text detected in image]`;
-    } else if (
-      lowerName.includes('college_id') ||
-      lowerName.includes('student_id') ||
-      lowerName.includes('id_card') ||
-      lowerName.includes('aadhaar') ||
-      lowerName.includes('pan') ||
-      lowerName.includes('passport')
-    ) {
+      setOcrText(extractedText);
+    } else if (lowerName.includes('demo_selfie')) {
+      extractedText = `[Personal photograph - No financial content detected in image]`;
+      setOcrText(extractedText);
+    } else if (lowerName.includes('demo_college_id')) {
       extractedText = `Student Identity Card - Indian Institute of Technology (BHU) Varanasi
 Name: Student
 Roll Number: 21075042
 Department: Computer Science and Engineering
 Valid through: 2026`;
-    } else if (
-      lowerName.includes('bank') ||
-      lowerName.includes('statement') ||
-      lowerName.includes('passbook') ||
-      lowerName.includes('sbi') ||
-      lowerName.includes('hdfc')
-    ) {
+      setOcrText(extractedText);
+    } else if (lowerName.includes('demo_bank')) {
       extractedText = `State Bank of India - Account Statement
 Account Number: XXXXXXXX1234
 Branch: Varanasi Main
 Transactions: Monthly Salary Credit, Grocery UPI Debit, Electricity Bill Payment.
 No investment claims or return promises.`;
-    } else if (lowerName.includes('blank') || lowerName.includes('empty')) {
-      extractedText = `[Blank image - No readable text detected]`;
-    } else if (
-      lowerName.includes('recipe') ||
-      lowerName.includes('food') ||
-      lowerName.includes('note')
-    ) {
-      extractedText = `Recipe for chocolate cake:
-2 cups all-purpose flour, 1 cup sugar, 3/4 cup cocoa powder.
-Bake at 350°F (175°C) for 30 minutes.`;
-    } else if (
-      lowerName.includes('scam') ||
-      lowerName.includes('vip') ||
-      lowerName.includes('upper_circuit') ||
-      lowerName.includes('guarantee') ||
-      lowerName.includes('telegram')
-    ) {
-      extractedText = `SEBI AUTHORIZED SCHEME - VIP UPPER CIRCUIT
-Certificate Reg No: INP998877112. Guaranteed 40% monthly returns under Special Allocation Window.
-Contact WhatsApp support to register folio.`;
       setOcrText(extractedText);
     } else {
       // Execute REAL ON-DEVICE TESSERACT.JS OCR in Web Worker
       setIsOcrScanning(true);
-      setOcrProgressText('Initializing on-device Tesseract OCR...');
+      setOcrProgressText('Initializing on-device OCR...');
       setOcrText(`[Scanning image on-device via Tesseract.js Web Worker...]`);
 
       try {
@@ -204,10 +159,10 @@ Contact WhatsApp support to register folio.`;
         if (ocrResult.text && ocrResult.text.length > 5) {
           extractedText = ocrResult.text;
         } else {
-          extractedText = `[Screenshot uploaded: ${fileCheck.sanitizedName}]\n[No readable text recognized automatically. Please type or paste the message content here to analyze.]`;
+          extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify & Inspect Screenshot' to run Google Gemini Multimodal analysis directly on this image)`;
         }
       } catch (err) {
-        extractedText = `[Screenshot uploaded: ${fileCheck.sanitizedName}]\n[Please type or paste the message content here to analyze.]`;
+        extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify & Inspect Screenshot' to run Google Gemini Multimodal analysis directly on this image)`;
       } finally {
         setIsOcrScanning(false);
         setOcrProgressText('');
@@ -217,8 +172,12 @@ Contact WhatsApp support to register folio.`;
   };
 
   const handleImageSubmit = () => {
-    if (!ocrText && !selectedImageName) return;
-    onAnalyze(ocrText || `Image uploaded: ${selectedImageName}`, 'image', imagePreviewUrl || undefined);
+    if (!selectedImageName && !imagePreviewUrl) return;
+    const textToSend =
+      ocrText && ocrText.trim().length > 10 && !ocrText.includes('[Scanning image')
+        ? ocrText
+        : `Screenshot Analysis: ${selectedImageName || 'uploaded_image'}. Inspect for financial fraud, unverified SEBI claims, guaranteed returns, or phishing.`;
+    onAnalyze(textToSend, 'image', imagePreviewUrl || undefined);
   };
 
   const loadPreset = (preset: DemoPreset) => {

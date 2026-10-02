@@ -39,17 +39,17 @@ export function classifyDocumentContentType(
     'landscape photo'
   ];
   const isPersonalPhotoText = personalPhotoKeywords.some(k => lower.includes(k));
-  const isPersonalPhotoFile =
-    /^(selfie|photo|portrait|profile|me|my_pic|face|dcim|camera|img_)/i.test(lowerFile) ||
-    lowerFile.includes('selfie') ||
-    lowerFile.includes('photo');
+  const isPersonalPhotoFile = lowerFile.includes('selfie_') || lowerFile.includes('my_portrait');
 
   if (
-    (isPersonalPhotoText || isPersonalPhotoFile) &&
+    (isPersonalPhotoText || (isPersonalPhotoFile && lower.length < 30)) &&
     !lower.includes('guaranteed') &&
     !lower.includes('sebi') &&
     !lower.includes('profit') &&
-    !lower.includes('investment')
+    !lower.includes('investment') &&
+    !lower.includes('trading') &&
+    !lower.includes('ipo') &&
+    !lower.includes('upi')
   ) {
     return 'PERSONAL_PHOTO';
   }
@@ -287,7 +287,8 @@ export function classifyDocumentContentType(
  */
 export function determineFinancialRelevance(
   contentType: DocumentContentType,
-  text: string
+  text: string,
+  inputType?: 'text' | 'image' | 'url'
 ): {
   relevance: FinancialRelevance;
   rationale: string;
@@ -364,12 +365,53 @@ export function determineFinancialRelevance(
     'deposit',
     'withdraw',
     'bonus',
-    'dividend'
+    'dividend',
+    'allotment',
+    'ipo'
   ];
 
   const hasAnyFinancialToken = genericFinancialKeywords.some(k => lower.includes(k));
 
-  if (!hasAnyFinancialToken || lower === '' || lower.includes('[blank image') || lower.includes('no readable text')) {
+  if (hasAnyFinancialToken) {
+    return {
+      relevance: 'YES',
+      rationale: 'Contains financial terms and market claims requiring regulatory safety evaluation.',
+      rationaleHi: 'इसमें वित्तीय संदर्भ व निवेश के दावे हैं जिनकी सुरक्षा जांच आवश्यक है।'
+    };
+  }
+
+  // Explicitly non-financial image text (blank image, food recipes, etc.)
+  if (
+    lower.includes('[blank image') ||
+    lower.includes('recipe for') ||
+    lower.includes('butter masala') ||
+    lower.includes('chocolate cake')
+  ) {
+    return {
+      relevance: 'NO',
+      rationale: 'Non-financial content detected. Zero investment or market claims present.',
+      rationaleHi: 'गैर-वित्तीय सामग्री पहचानी गई। इसमें कोई वित्तीय या निवेश संबंधी दावा नहीं है।'
+    };
+  }
+
+  // For uploaded images where OCR is pending or placeholder is used:
+  // Treat as UNCERTAIN so multimodal AI or user verification can inspect it
+  if (
+    inputType === 'image' &&
+    (lower === '' ||
+      lower.includes('screenshot analysis') ||
+      lower.includes('visual forensic verification ready') ||
+      lower.includes('[scanning image') ||
+      lower.length < 25)
+  ) {
+    return {
+      relevance: 'UNCERTAIN',
+      rationale: 'Visual image upload pending deep multimodal forensic inspection. Independent visual verification active.',
+      rationaleHi: 'अपलोड की गई छवि की मल्टी-मॉडल एआई द्वारा दृश्य जांच जारी है।'
+    };
+  }
+
+  if (lower === '') {
     return {
       relevance: 'NO',
       rationale: 'No financial or investment-related claims detected in this content.',
@@ -377,11 +419,11 @@ export function determineFinancialRelevance(
     };
   }
 
-  // Financial token present in unclassified text -> UNCERTAIN
+  // Financial token absent in standard text
   return {
-    relevance: 'UNCERTAIN',
-    rationale: 'Contains ambiguous financial references without clear context. Independent verification required.',
-    rationaleHi: 'इसमें कुछ वित्तीय शब्द हैं लेकिन संदर्भ स्पष्ट नहीं है। स्वतंत्र पुष्टि आवश्यक है।'
+    relevance: 'NO',
+    rationale: 'No financial or investment-related claims detected in this content.',
+    rationaleHi: 'इस सामग्री में वित्तीय या निवेश से जुड़ा कोई विषय नहीं पाया गया।'
   };
 }
 
@@ -417,7 +459,7 @@ export function classifyContent(
   }
 
   // 3. Financial Relevance Gate for Safe / Ambiguous Content
-  const relevanceCheck = determineFinancialRelevance(documentContentType, text);
+  const relevanceCheck = determineFinancialRelevance(documentContentType, text, inputType);
 
   // If clearly non-financial and no scam indicators, return safe non-financial category immediately
   if (relevanceCheck.relevance === 'NO') {
