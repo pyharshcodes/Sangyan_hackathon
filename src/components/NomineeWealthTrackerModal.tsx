@@ -10,16 +10,34 @@ interface NomineeWealthTrackerModalProps {
 export function NomineeWealthTrackerModal({ onClose, lang }: NomineeWealthTrackerModalProps) {
   const isHindi = lang === 'hi';
 
-  const [checklist, setChecklist] = useState<{ [key: string]: boolean }>({
-    dematNominee: false,
-    bankNominee: false,
-    mfFolioNominee: false,
-    physicalShareAudit: false,
-    willOrVaultDoc: false
+  const [checklist, setChecklist] = useState<{ [key: string]: boolean }>(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem('sangyan_nominee_audit');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+    return {
+      dematNominee: false,
+      bankNominee: false,
+      mfFolioNominee: false,
+      physicalShareAudit: false,
+      willOrVaultDoc: false
+    };
   });
 
   const toggleCheck = (id: string) => {
-    setChecklist((prev) => ({ ...prev, [id]: !prev[id] }));
+    setChecklist((prev) => {
+      const updated = { ...prev, [id]: !prev[id] };
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem('sangyan_nominee_audit', JSON.stringify(updated));
+      }
+      return updated;
+    });
   };
 
   const completedCount = Object.values(checklist).filter(Boolean).length;

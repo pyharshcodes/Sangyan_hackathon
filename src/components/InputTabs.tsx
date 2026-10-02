@@ -22,6 +22,8 @@ import { inspectAndNeutralizePromptInjection } from '../engine/promptInjectionDe
 import { evaluateGuardrailQuery } from '../engine/guardrailInterceptor';
 import { extractTextFromImage } from '../engine/ocrService';
 import { WhatsAppBharatSimulator } from './WhatsAppBharatSimulator';
+import { FeaturePhoneIvrSimulator } from './FeaturePhoneIvrSimulator';
+import { CommunityThreatLedger } from './CommunityThreatLedger';
 
 interface InputTabsProps {
   onAnalyze: (input: string, type: 'text' | 'image' | 'url', imagePreviewUrl?: string) => void;
@@ -29,7 +31,7 @@ interface InputTabsProps {
 }
 
 export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
-  const [inputMode, setInputMode] = useState<'standard' | 'whatsapp'>('standard');
+  const [inputMode, setInputMode] = useState<'standard' | 'whatsapp' | 'featurephone'>('standard');
   const [activeTab, setActiveTab] = useState<'text' | 'image' | 'url'>('text');
   const [textContent, setTextContent] = useState('');
   const [urlContent, setUrlContent] = useState('');
@@ -341,12 +343,28 @@ No investment claims or return promises.`;
           >
             📱 {lang === 'hi' ? 'व्हाट्सएप भारत सिमुलेटर (Tier-2/3 मोड)' : 'WhatsApp Bharat Simulator'}
           </button>
+          <button
+            type="button"
+            onClick={() => setInputMode('featurephone')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              inputMode === 'featurephone'
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
+            }`}
+          >
+            📞 {lang === 'hi' ? '1800 आईवीआर व USSD (फीचर फोन)' : '1800-IVR / USSD (Feature Phone)'}
+          </button>
         </div>
       </div>
 
       {inputMode === 'whatsapp' ? (
         <WhatsAppBharatSimulator
           onSelectSampleForAnalysis={(text, type) => onAnalyze(text, type)}
+          lang={lang}
+        />
+      ) : inputMode === 'featurephone' ? (
+        <FeaturePhoneIvrSimulator
+          onAnalyzeSample={(text, type) => onAnalyze(text, type)}
           lang={lang}
         />
       ) : (
@@ -594,6 +612,11 @@ No investment claims or return promises.`;
           })}
         </div>
       </div>
+
+      {/* ============================================================== */}
+      {/* CROWDSOURCED COMMUNITY THREAT INTELLIGENCE (Hackathon Page 5)  */}
+      {/* ============================================================== */}
+      <CommunityThreatLedger lang={lang} />
     </div>
   );
 };
