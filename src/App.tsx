@@ -15,6 +15,7 @@ import { AboutPrivacyView } from './components/AboutPrivacyView';
 import { CoolingOffCircuitBreaker } from './components/CoolingOffCircuitBreaker';
 import { SocraticDoubtResolver } from './components/SocraticDoubtResolver';
 import { NomineeWealthTrackerModal } from './components/NomineeWealthTrackerModal';
+import { GeminiApiKeyModal } from './components/GeminiApiKeyModal';
 import { AnalysisResult, SupportedLanguage } from './types';
 import { runSangyanAnalysis } from './engine/coreAnalyzer';
 import { RotateCcw, Eye, EyeOff, Lock, HeartHandshake } from 'lucide-react';
@@ -28,6 +29,7 @@ export function App() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [showComplaintDraft, setShowComplaintDraft] = useState(false);
   const [showNomineeTracker, setShowNomineeTracker] = useState(false);
+  const [showAiConfig, setShowAiConfig] = useState(false);
   const [showRawInput, setShowRawInput] = useState(false);
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
@@ -74,6 +76,7 @@ export function App() {
         lang={lang}
         setLang={setLang}
         onOpenNomineeTracker={() => setShowNomineeTracker(true)}
+        onOpenAiConfig={() => setShowAiConfig(true)}
       />
 
       {/* Main Content Area */}
@@ -204,6 +207,13 @@ export function App() {
         <NomineeWealthTrackerModal
           onClose={() => setShowNomineeTracker(false)}
           lang={lang}
+        />
+      )}
+
+      {/* Modal: Hybrid AI Engine Configuration (Gemini 1.5 Flash) */}
+      {showAiConfig && (
+        <GeminiApiKeyModal
+          onClose={() => setShowAiConfig(false)}
         />
       )}
 

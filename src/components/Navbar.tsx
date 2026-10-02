@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, ShieldAlert, PhoneCall, Globe, BookOpen, Info, CheckCircle2, ChevronDown, HeartHandshake } from 'lucide-react';
+import { Shield, ShieldAlert, PhoneCall, Globe, BookOpen, Info, CheckCircle2, ChevronDown, HeartHandshake, Cpu } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { TRANSLATIONS } from '../data/translations';
 
@@ -9,9 +9,10 @@ interface NavbarProps {
   lang: SupportedLanguage;
   setLang: (lang: SupportedLanguage) => void;
   onOpenNomineeTracker?: () => void;
+  onOpenAiConfig?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, lang, setLang, onOpenNomineeTracker }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, lang, setLang, onOpenNomineeTracker, onOpenAiConfig }) => {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
@@ -128,6 +129,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, lan
                   <HeartHandshake className="w-3.5 h-3.5 text-blue-700" />
                   <span className="hidden lg:inline">Nominee Audit</span>
                   <span className="lg:hidden">Track B</span>
+                </button>
+              )}
+
+              {onOpenAiConfig && (
+                <button
+                  onClick={onOpenAiConfig}
+                  className="px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5 bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100 font-bold text-xs shadow-2xs cursor-pointer"
+                  title="Configure Google Gemini Hybrid AI Engine"
+                >
+                  <Cpu className="w-3.5 h-3.5 text-indigo-700" />
+                  <span className="hidden lg:inline">AI Engine</span>
+                  <span className="lg:hidden">AI</span>
                 </button>
               )}
 
