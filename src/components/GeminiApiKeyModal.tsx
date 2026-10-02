@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Key, CheckCircle2, ShieldCheck, ExternalLink, Cpu, AlertCircle } from 'lucide-react';
-import { getGeminiApiKey, setGeminiApiKey } from '../engine/geminiAiService';
+import { X, Sparkles, Key, CheckCircle2, ShieldCheck, ExternalLink, Cpu, AlertCircle, RefreshCw, Zap } from 'lucide-react';
+import { getGeminiApiKey, setGeminiApiKey, pingGeminiConnection } from '../engine/geminiAiService';
 
 interface GeminiApiKeyModalProps {
   onClose: () => void;
@@ -9,6 +9,12 @@ interface GeminiApiKeyModalProps {
 export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
   const [apiKey, setApiKey] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    latencyMs: number;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     const existing = getGeminiApiKey();
@@ -17,18 +23,37 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
     }
   }, []);
 
+  const handleTestConnection = async () => {
+    if (!apiKey || apiKey.trim().length < 10) {
+      setTestResult({
+        success: false,
+        latencyMs: 0,
+        message: 'Please paste a valid Gemini API key first.'
+      });
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+
+    const result = await pingGeminiConnection(apiKey.trim());
+    setIsTesting(false);
+    setTestResult(result);
+  };
+
   const handleSave = () => {
     setGeminiApiKey(apiKey.trim());
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);
       onClose();
-    }, 1500);
+    }, 1200);
   };
 
   const handleClear = () => {
     setGeminiApiKey('');
     setApiKey('');
+    setTestResult(null);
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);
@@ -70,7 +95,7 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
             <div className="flex items-center space-x-2">
               <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-500'}`} />
               <span className="font-bold text-xs">
-                {isConnected ? 'Gemini 1.5 Flash Active ⚡' : 'Symbolic Deterministic Guardrail Mode Active 🛡️'}
+                {isConnected ? 'Gemini 1.5 Flash Configured ⚡' : 'Symbolic Deterministic Guardrail Mode Active 🛡️'}
               </span>
             </div>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white font-bold border border-slate-200">
@@ -79,13 +104,13 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
           </div>
 
           <p className="text-xs text-slate-600 leading-relaxed">
-            By connecting your free <strong>Google Gemini API Key</strong>, SANGYAN Kavach activates real-time contextual Generative AI reasoning, nuanced manipulation detection, and dynamic vernacular explanations alongside our deterministic SEBI regulatory guardrails.
+            By connecting your <strong>Google Gemini API Key</strong>, SANGYAN Kavach activates real-time contextual Generative AI reasoning, nuanced manipulation detection, and dynamic vernacular explanations alongside our deterministic SEBI regulatory guardrails.
           </p>
 
           {/* Key Input */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-              <span>Gemini API Key (Optional):</span>
+              <span>Gemini API Key:</span>
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
@@ -100,16 +125,62 @@ export function GeminiApiKeyModal({ onClose }: GeminiApiKeyModalProps) {
               <input
                 type="password"
                 value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  setTestResult(null);
+                }}
                 placeholder="AIzaSy..."
                 className="w-full text-xs font-mono p-3 pr-8 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-slate-50"
               />
               <Key className="w-4 h-4 text-slate-400 absolute right-3 top-3.5" />
             </div>
-            <p className="text-[10px] text-slate-500">
-              Stored strictly in your local browser memory (localStorage). Never sent to our servers.
-            </p>
+
+            {/* Test Connection Button & Indicator */}
+            <div className="flex items-center justify-between pt-1">
+              <p className="text-[10px] text-slate-500">
+                Stored strictly in your local browser memory (localStorage).
+              </p>
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={isTesting || !apiKey.trim()}
+                className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-bold text-xs flex items-center space-x-1.5 disabled:opacity-50 cursor-pointer transition-all"
+              >
+                {isTesting ? (
+                  <>
+                    <RefreshCw className="w-3 h-3 animate-spin text-indigo-700" />
+                    <span>Pinging Gemini...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-3 h-3 text-amber-500" />
+                    <span>Test Connection</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Test Result Banner */}
+          {testResult && (
+            <div className={`p-3 rounded-xl border text-xs flex items-start space-x-2 animate-fadeIn ${
+              testResult.success
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                : 'bg-rose-50 border-rose-300 text-rose-950'
+            }`}>
+              {testResult.success ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              )}
+              <div className="space-y-0.5">
+                <span className="font-bold block">
+                  {testResult.success ? '✅ Gemini Live Connection Verified!' : '❌ Connection Check Failed'}
+                </span>
+                <span className="text-[11px] block">{testResult.message}</span>
+              </div>
+            </div>
+          )}
 
           {/* Fallback Notice */}
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 space-y-1">

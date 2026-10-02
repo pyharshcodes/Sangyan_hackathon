@@ -18,6 +18,7 @@ export interface GeminiAiResponse {
   regulatoryViolationNotes: string;
   confidenceScore: number;
   modelUsed: string;
+  latencyMs: number;
 }
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
@@ -64,6 +65,73 @@ export function isGeminiAiActive(): boolean {
 }
 
 /**
+ * Lightweight ping to verify that the Gemini API Key is valid and active
+ */
+export async function pingGeminiConnection(keyToTest?: string): Promise<{
+  success: boolean;
+  latencyMs: number;
+  message: string;
+}> {
+  const apiKey = keyToTest || getGeminiApiKey();
+  if (!apiKey) {
+    return {
+      success: false,
+      latencyMs: 0,
+      message: 'No API key provided. Operating in Symbolic Heuristic mode.'
+    };
+  }
+
+  const startTime = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: 'Respond with exactly: {"status": "ok", "system": "SANGYAN_KAVACH_READY"}' }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    clearTimeout(timeoutId);
+    const latencyMs = Date.now() - startTime;
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      return {
+        success: false,
+        latencyMs,
+        message: `API Error (${response.status}): ${errBody.slice(0, 120)}`
+      };
+    }
+
+    return {
+      success: true,
+      latencyMs,
+      message: `Gemini 1.5 Flash Connected! Latency: ${latencyMs}ms`
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      latencyMs: Date.now() - startTime,
+      message: err.name === 'AbortError' ? 'Connection timed out (6s)' : (err.message || 'Network error')
+    };
+  }
+}
+
+/**
  * Call Gemini 1.5 Flash for deep contextual reasoning
  */
 export async function analyzeWithGemini(
@@ -94,6 +162,7 @@ Respond ONLY in valid JSON with this exact structure:
   "confidenceScore": 95
 }`;
 
+  const startTime = Date.now();
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 7000); // 7s timeout
@@ -118,6 +187,7 @@ Respond ONLY in valid JSON with this exact structure:
     });
 
     clearTimeout(timeoutId);
+    const latencyMs = Date.now() - startTime;
 
     if (!response.ok) {
       console.warn('Gemini API call returned non-OK status:', response.status);
@@ -135,7 +205,8 @@ Respond ONLY in valid JSON with this exact structure:
       manipulationTriggers: parsed.manipulationTriggers || [],
       regulatoryViolationNotes: parsed.regulatoryViolationNotes || '',
       confidenceScore: parsed.confidenceScore || 90,
-      modelUsed: 'Google Gemini 1.5 Flash'
+      modelUsed: 'Google Gemini 1.5 Flash',
+      latencyMs
     };
   } catch (err) {
     console.warn('Gemini analysis skipped or failed, using deterministic symbolic engine:', err);

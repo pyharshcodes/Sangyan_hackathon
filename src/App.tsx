@@ -16,8 +16,10 @@ import { CoolingOffCircuitBreaker } from './components/CoolingOffCircuitBreaker'
 import { SocraticDoubtResolver } from './components/SocraticDoubtResolver';
 import { NomineeWealthTrackerModal } from './components/NomineeWealthTrackerModal';
 import { GeminiApiKeyModal } from './components/GeminiApiKeyModal';
+import { GeminiLiveInsightsCard } from './components/GeminiLiveInsightsCard';
 import { AnalysisResult, SupportedLanguage } from './types';
 import { runSangyanAnalysis } from './engine/coreAnalyzer';
+import { analyzeWithGemini, isGeminiAiActive } from './engine/geminiAiService';
 import { RotateCcw, Eye, EyeOff, Lock, HeartHandshake } from 'lucide-react';
 import { TRANSLATIONS } from './data/translations';
 
@@ -40,9 +42,32 @@ export function App() {
     imagePreviewUrl?: string
   ) => {
     setIsLoading(true);
-    // Execute transparent verification
+    // 1. Instant execution of deterministic Symbolic AI verification
     const result = runSangyanAnalysis(input, type, imagePreviewUrl);
     setAnalysisResult(result);
+
+    // 2. If Gemini Generative AI key is available, run live contextual enrichment
+    if (isGeminiAiActive()) {
+      try {
+        const detectedSignals = result.evidenceCards.map((c) => `${c.category}: ${c.evidence}`);
+        analyzeWithGemini(result.sanitizedInput, detectedSignals).then((geminiInsights) => {
+          if (geminiInsights) {
+            setAnalysisResult((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    geminiInsights,
+                    hindiExplanation: geminiInsights.aiExplanationHi || prev.hindiExplanation,
+                    whyItMattersSummary: geminiInsights.aiAnalysis || prev.whyItMattersSummary
+                  }
+                : null
+            );
+          }
+        });
+      } catch (err) {
+        console.warn('Gemini non-blocking enrichment error:', err);
+      }
+    }
   };
 
   const handleLoadingComplete = () => {
@@ -148,6 +173,14 @@ export function App() {
 
                 {/* 1. TOP: RISK ASSESSMENT */}
                 <RiskAssessmentCard result={analysisResult} lang={lang} />
+
+                {/* LIVE GENERATIVE AI REASONING (Google Gemini 1.5 Flash - Flaw 1 Solution) */}
+                {analysisResult.geminiInsights && (
+                  <GeminiLiveInsightsCard
+                    insights={analysisResult.geminiInsights}
+                    lang={lang}
+                  />
+                )}
 
                 {/* 2. "Why?" - Individual Evidence Cards Grid (Identity, URL, Language, Urgency, Payment, Regulatory) */}
                 <EvidenceCardsGrid cards={analysisResult.evidenceCards} lang={lang} />

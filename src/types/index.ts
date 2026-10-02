@@ -201,6 +201,17 @@ export interface AnalysisResult {
     cityHub: string;
     syndicateDetected: boolean;
   };
+
+  // Live Generative AI Reasoning Layer (Gemini 1.5/2.0 Flash)
+  geminiInsights?: {
+    aiAnalysis: string;
+    aiExplanationHi: string;
+    manipulationTriggers: string[];
+    regulatoryViolationNotes: string;
+    confidenceScore: number;
+    modelUsed: string;
+    latencyMs?: number;
+  };
 }
 
 export interface DemoPreset {
