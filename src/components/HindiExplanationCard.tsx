@@ -227,29 +227,51 @@ export const HindiExplanationCard: React.FC<HindiExplanationCardProps> = ({
           </div>
         </div>
 
-        {/* Audio Playback Button */}
-        {isSupported && (
-          <button
-            onClick={handleToggleAudio}
-            className={`min-h-[44px] px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 shadow-xs ${
-              isPlaying
-                ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
-                : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-            }`}
-          >
-            {isPlaying ? (
-              <>
-                <Square className="w-4 h-4 fill-current" />
-                <span>{t.stopAudioBtn}</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-4 h-4" />
-                <span>{t.listenAudioBtn}</span>
-              </>
-            )}
-          </button>
-        )}
+        {/* Audio Visualizer & Playback Button */}
+        <div className="flex items-center gap-3">
+          {isPlaying && (
+            <div className="flex items-center space-x-2 px-3 py-1.5 rounded-2xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="text-[11px] font-bold">BHASHINI AI VOICE:</span>
+              <div className="flex items-end space-x-0.5 h-4">
+                {[40, 85, 60, 100, 50, 90, 70, 100, 55, 85, 45, 95].map((h, idx) => (
+                  <span
+                    key={idx}
+                    className="w-1 bg-emerald-400 rounded-full animate-pulse"
+                    style={{
+                      height: `${h}%`,
+                      animationDelay: `${(idx % 4) * 150}ms`,
+                      animationDuration: '600ms'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isSupported && (
+            <button
+              onClick={handleToggleAudio}
+              className={`min-h-[44px] px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center space-x-2 shadow-xs cursor-pointer ${
+                isPlaying
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+              }`}
+            >
+              {isPlaying ? (
+                <>
+                  <Square className="w-4 h-4 fill-current" />
+                  <span>{t.stopAudioBtn}</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4 h-4" />
+                  <span>{t.listenAudioBtn}</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Short, icon-based concise sentences (No dense paragraphs) */}

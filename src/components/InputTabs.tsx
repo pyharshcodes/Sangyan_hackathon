@@ -26,6 +26,8 @@ import { extractTextFromImage } from '../engine/ocrService';
 import { WhatsAppBharatSimulator } from './WhatsAppBharatSimulator';
 import { FeaturePhoneIvrSimulator } from './FeaturePhoneIvrSimulator';
 import { CommunityThreatLedger } from './CommunityThreatLedger';
+import { TrendingScamsShowcase } from './TrendingScamsShowcase';
+import { playScanSound } from '../utils/soundEffects';
 
 interface InputTabsProps {
   onAnalyze: (input: string, type: 'text' | 'image' | 'url', imagePreviewUrl?: string) => void;
@@ -155,6 +157,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
     e.preventDefault();
     if (!textContent.trim()) return;
     if (checkProhibitedAdviceQuery(textContent)) return;
+    playScanSound();
 
     // Check adversarial prompt injection
     const injectionCheck = inspectAndNeutralizePromptInjection(textContent);
@@ -170,6 +173,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
     e.preventDefault();
     if (!urlContent.trim()) return;
     if (checkProhibitedAdviceQuery(urlContent)) return;
+    playScanSound();
 
     // Strict SSRF and URL Safety Validation
     const urlValidation = validateSafeUrl(urlContent);
@@ -262,6 +266,7 @@ No investment claims or return promises.`;
 
   const handleImageSubmit = () => {
     if (!selectedImageName && !imagePreviewUrl) return;
+    playScanSound();
     const textToSend =
       ocrText && ocrText.trim().length > 10 && !ocrText.includes('[Scanning image')
         ? ocrText
@@ -270,6 +275,7 @@ No investment claims or return promises.`;
   };
 
   const loadPreset = (preset: DemoPreset) => {
+    playScanSound();
     setGuardrailAlert(null);
     if (preset.type === 'text') {
       setActiveTab('text');
@@ -400,6 +406,22 @@ No investment claims or return promises.`;
           </div>
         </div>
       </div>
+
+      {/* VIRAL INDIAN SCAMS INTERACTIVE SHOWCASE - Realistic 1-Click WhatsApp/Telegram Tests */}
+      <TrendingScamsShowcase
+        onSelectScam={(text, type) => {
+          playScanSound();
+          if (type === 'text') {
+            setTextContent(text);
+            setActiveTab('text');
+          } else if (type === 'url') {
+            setUrlContent(text);
+            setActiveTab('url');
+          }
+          onAnalyze(text, type);
+        }}
+        lang={lang}
+      />
 
       {/* CHANNEL DELIVERY SELECTOR (Bharat-First Delivery Mode - Flaw 5 Solution) */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-2xs">

@@ -1,15 +1,29 @@
-import React from 'react';
-import { ShieldAlert, ShieldCheck, AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShieldAlert, ShieldCheck, AlertTriangle, AlertCircle, Info, PhoneCall, Copy, Check, FileText } from 'lucide-react';
 import { AnalysisResult, SupportedLanguage } from '../types';
 import { TRANSLATIONS } from '../data/translations';
 
 interface RiskAssessmentCardProps {
   result: AnalysisResult;
   lang: SupportedLanguage;
+  onOpenComplaintDraft?: () => void;
 }
 
-export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, lang }) => {
+export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({
+  result,
+  lang,
+  onOpenComplaintDraft
+}) => {
+  const [copied, setCopied] = useState(false);
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+  const score = result.heuristicScore || 0;
+
+  const handleCopyDossier = () => {
+    const textToCopy = `[SANGYAN KAVACH FRAUD DOSSIER]\nThreat Level: ${result.overallAssessment} (${score}/100)\nContent: ${result.sanitizedInput}\nIdentified Signals: ${result.evidenceCards.map((c) => c.category + ': ' + c.evidence).join('; ')}\nTimestamp: ${result.timestamp}\nReported via SANGYAN KAVACH Shield.`;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
 
   const getAssessmentDisplay = () => {
     switch (result.overallAssessment) {
@@ -33,6 +47,8 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, 
               : 'Non-financial or personal content. Zero investment fraud risk.',
           badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300',
           indicatorBg: 'bg-emerald-600 text-white',
+          glowRing: 'ring-emerald-500/20 border-emerald-200',
+          strokeColor: '#059669',
           icon: ShieldCheck
         };
       case 'Needs Verification':
@@ -55,28 +71,32 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, 
               : 'Ambiguous or insufficient evidence. Independent verification advised.',
           badgeBg: 'bg-amber-100 text-amber-900 border-amber-300',
           indicatorBg: 'bg-amber-600 text-white',
+          glowRing: 'ring-amber-500/20 border-amber-200',
+          strokeColor: '#d97706',
           icon: AlertCircle
         };
       case 'Critical':
         return {
           title:
             lang === 'hi'
-              ? 'अति-गंभीर जोखिम (CRITICAL RISK)'
+              ? 'अति-गंभीर जोखिम (CRITICAL FRAUD THREAT)'
               : lang === 'bn'
               ? 'মারাত্মক ঝুঁকি (CRITICAL RISK)'
               : lang === 'as'
               ? 'মাৰাত্মক বিপদ (CRITICAL RISK)'
-              : 'CRITICAL RISK',
+              : 'CRITICAL FRAUD THREAT',
           desc:
             lang === 'hi'
-              ? 'गंभीर धोखाधड़ी या अवैध योजना के पुख्ता संकेत।'
+              ? 'अवैध पोंजी स्कीम / वित्तीय धोखाधड़ी के पुख्ता प्रमाण! पैसे कभी ट्रांसफर न करें।'
               : lang === 'bn'
-              ? 'গুরুতর প্রতারণামূলক পরিকল্পনার সুস্পষ্ট প্রমাণ।'
+              ? 'গুরুতর প্রতারণামূলক পরিকল্পনার সুস্পষ্ট প্রমাণ! টাকা পাঠাবেন না।'
               : lang === 'as'
-              ? 'গুৰুতৰ প্ৰতাৰণামূলক আঁচনিৰ স্পষ্ট প্ৰমাণ।'
-              : 'High probability of malicious deception or fraudulent scheme.',
+              ? 'গুৰুতৰ প্ৰতাৰণামূলক আঁচনিৰ স্পষ্ট প্ৰমাণ! ধন কেতিয়াও নিদিব।'
+              : 'High probability of malicious financial fraud. Strictly DO NOT send funds.',
           badgeBg: 'bg-rose-100 text-rose-900 border-rose-300',
           indicatorBg: 'bg-rose-700 text-white',
+          glowRing: 'ring-rose-500/30 border-rose-300 shadow-rose-500/10 shadow-lg',
+          strokeColor: '#e11d48',
           icon: ShieldAlert
         };
       case 'High':
@@ -91,7 +111,7 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, 
               : 'HIGH RISK',
           desc:
             lang === 'hi'
-              ? 'भ्रामक दावे और अपुष्ट जानकारी पाई गई है।'
+              ? 'भ्रामक दावे और अपुष्ट जानकारी पाई गई है। अत्यधिक सतर्कता बरतें।'
               : lang === 'bn'
               ? 'প্রতারণার লক্ষণ ও অপ্রমাণিত দাবির উপস্থিতি।'
               : lang === 'as'
@@ -99,6 +119,8 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, 
               : 'Significant deception patterns and unverified claims detected.',
           badgeBg: 'bg-amber-100 text-amber-900 border-amber-300',
           indicatorBg: 'bg-amber-700 text-white',
+          glowRing: 'ring-amber-500/25 border-amber-300',
+          strokeColor: '#b45309',
           icon: AlertTriangle
         };
       case 'Moderate':
@@ -121,6 +143,8 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, 
               : 'Unsubstantiated promotional claims. Independent verification required.',
           badgeBg: 'bg-yellow-100 text-yellow-900 border-yellow-300',
           indicatorBg: 'bg-yellow-700 text-white',
+          glowRing: 'ring-yellow-500/20 border-yellow-200',
+          strokeColor: '#ca8a04',
           icon: AlertCircle
         };
       case 'Low':
@@ -144,6 +168,8 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, 
               : 'Educational or informational content with balanced disclosures.',
           badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300',
           indicatorBg: 'bg-emerald-700 text-white',
+          glowRing: 'ring-emerald-500/20 border-emerald-200',
+          strokeColor: '#047857',
           icon: ShieldCheck
         };
     }
@@ -151,70 +177,178 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, 
 
   const item = getAssessmentDisplay();
   const Icon = item.icon;
+  const isHighOrCritical = result.overallAssessment === 'Critical' || result.overallAssessment === 'High';
+
+  // SVG circular gauge math
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius; // ~238.76
+  const strokeDashoffset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/90 shadow-xs p-6 sm:p-8 space-y-4">
-      {/* Top Header Label */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-          {t.riskAssessmentTitle}
+    <div
+      className={`bg-white/95 backdrop-blur-md rounded-3xl border p-6 sm:p-8 space-y-5 transition-all ring-4 ${item.glowRing}`}
+    >
+      {/* Top Header Label with Live Timestamp */}
+      <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-2">
+        <div className="flex items-center space-x-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
+          <span className="text-xs font-black uppercase tracking-wider text-slate-700 font-mono">
+            {t.riskAssessmentTitle}
+          </span>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-mono">
+            DPDP MASKED
+          </span>
         </div>
-        <div className="flex items-center space-x-1.5 text-[11px] text-slate-500 font-mono">
-          <span>Heuristic Index:</span>
-          <span className="font-bold text-slate-900">{result.heuristicScore}/100</span>
+
+        <div className="flex items-center space-x-2 text-[11px] text-slate-500 font-mono">
+          <span>Heuristic + Gemini Engine</span>
+          <span className="font-bold text-slate-900">· {result.heuristicScore}/100</span>
         </div>
       </div>
 
-      {/* Main Status Block (Accessible: text + icon + badge, never color alone) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${item.indicatorBg}`}>
+      {/* Main Status & Circular Threat Speedometer Gauge */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        {/* Left Side: Icon & Title */}
+        <div className="flex items-start space-x-4 flex-1">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${item.indicatorBg}`}>
             <Icon className="w-8 h-8" />
           </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+
+          <div className="space-y-1">
+            <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
               {item.title}
             </div>
-            <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-xl">
               {item.desc}
             </p>
+
+            {/* Badges Row */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+              {result.urlClassification && (
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 font-mono">
+                  {result.urlClassification}
+                </span>
+              )}
+              {result.documentContentType && !result.urlClassification && (
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 font-mono">
+                  {result.documentContentType.replace(/_/g, ' ')}
+                </span>
+              )}
+              {result.financialRelevance && (
+                <span
+                  className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border font-mono ${
+                    result.financialRelevance === 'NO'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : result.financialRelevance === 'YES'
+                      ? 'bg-blue-50 text-blue-800 border-blue-200'
+                      : 'bg-amber-50 text-amber-800 border-amber-200'
+                  }`}
+                >
+                  Relevance: {result.financialRelevance}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Content Category & Relevance Badges */}
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
-          {result.urlClassification && (
-            <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 border border-slate-200 font-mono">
-              {result.urlClassification}
-            </span>
-          )}
-          {result.documentContentType && !result.urlClassification && (
-            <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 border border-slate-200 font-mono">
-              {result.documentContentType.replace(/_/g, ' ')}
-            </span>
-          )}
-          {result.financialRelevance && (
-            <span
-              className={`inline-block text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-xl border font-mono ${
-                result.financialRelevance === 'NO'
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                  : result.financialRelevance === 'YES'
-                  ? 'bg-blue-50 text-blue-800 border-blue-200'
-                  : 'bg-amber-50 text-amber-800 border-amber-200'
-              }`}
-            >
-              Relevance: {result.financialRelevance}
-            </span>
-          )}
-          {!result.documentContentType && !result.urlClassification && (
-            <span className="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 border border-slate-200 font-mono">
-              {result.contentClassification}
-            </span>
-          )}
+        {/* Right Side: Futuristic Circular Threat Dial */}
+        <div className="flex items-center space-x-4 self-center md:self-auto bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200 shrink-0">
+          <div className="relative w-24 h-24 flex items-center justify-center">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 96 96">
+              {/* Background circle track */}
+              <circle
+                cx="48"
+                cy="48"
+                r={radius}
+                className="text-slate-200"
+                strokeWidth="8"
+                stroke="currentColor"
+                fill="transparent"
+              />
+              {/* Progress arc with dynamic stroke */}
+              <circle
+                cx="48"
+                cy="48"
+                r={radius}
+                stroke={item.strokeColor}
+                strokeWidth="8"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                fill="transparent"
+                className="transition-all duration-1000 ease-out"
+              />
+            </svg>
+
+            {/* Inner dial text */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span className="text-xl font-black text-slate-900 tracking-tight leading-none font-mono">
+                {score}%
+              </span>
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5 font-mono">
+                THREAT
+              </span>
+            </div>
+          </div>
+
+          <div className="text-left space-y-1">
+            <div className="text-xs font-bold text-slate-800">
+              {lang === 'hi' ? 'खतरे की तीव्रता' : 'Threat Metric'}
+            </div>
+            <div className="text-[11px] font-mono text-slate-500">
+              Severity: <strong className="text-slate-900">{result.overallAssessment}</strong>
+            </div>
+            <div className="text-[10px] text-slate-400 font-mono">
+              Calibrated Heuristic Index
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Hybrid AI Semantic Archetype & Case Precedent (Flaw 1 Solution) */}
+      {/* Emergency Action Strip if High or Critical Risk */}
+      {isHighOrCritical && (
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-300 flex flex-wrap items-center justify-between gap-3 text-xs text-rose-950">
+          <div className="flex items-center space-x-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping shrink-0" />
+            <span className="font-bold leading-relaxed">
+              {lang === 'hi'
+                ? 'सतर्कता: इस व्यक्ति या ग्रुप को कोई पैसा न भेजें। साइबर क्राइम रिपोर्टिंग सक्रिय करें।'
+                : 'CRITICAL ALERT: Do not send money or OTP. Preserve evidence & report immediately.'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <a
+              href="tel:1930"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition-all shadow-xs cursor-pointer"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>Dial 1930</span>
+            </a>
+
+            {onOpenComplaintDraft && (
+              <button
+                onClick={onOpenComplaintDraft}
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white text-rose-800 hover:bg-rose-100 border border-rose-300 font-bold transition-all shadow-xs cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-rose-600" />
+                <span>{lang === 'hi' ? 'पुलिस/सेबी ड्राफ्ट' : 'FIR / Police Dossier'}</span>
+              </button>
+            )}
+
+            <button
+              onClick={handleCopyDossier}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition-all shadow-xs cursor-pointer"
+              title="Copy incident forensic summary to clipboard"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Copied!' : 'Copy Dossier'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hybrid AI Semantic Archetype & Case Precedent */}
       {result.semanticArchetype && (
         <div className="p-3.5 sm:p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200/90 space-y-2 text-xs">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -240,25 +374,8 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({ result, 
         </div>
       )}
 
-      {/* Regional Community Threat Telemetry (Flaw 10 Solution) */}
-      {result.threatTelemetry && (
-        <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-2 text-xs text-rose-900">
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
-            <span className="font-bold">
-              {lang === 'hi'
-                ? `⚠️ क्षेत्रीय थ्रेट लेजर: पिछले 48 घंटों में ${result.threatTelemetry.regionalFlagCount} निवेशकों ने इस सिंडिकेट को रिपोर्ट किया है (${result.threatTelemetry.cityHub})`
-                : `⚠️ Community Scam Telemetry: Flagged by ${result.threatTelemetry.regionalFlagCount} investors in ${result.threatTelemetry.cityHub} in the last 48 hours.`}
-            </span>
-          </div>
-          <span className="text-[10px] font-mono bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">
-            Syndicate Alert
-          </span>
-        </div>
-      )}
-
       {/* Transparent Disclaimer */}
-      <div className="pt-2 flex items-start space-x-2 text-[11px] text-slate-400">
+      <div className="pt-1 flex items-start space-x-2 text-[11px] text-slate-400 border-t border-slate-100">
         <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
         <p>{result.heuristicScoreDisclaimer}</p>
       </div>

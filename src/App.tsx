@@ -17,6 +17,8 @@ import { SocraticDoubtResolver } from './components/SocraticDoubtResolver';
 import { NomineeWealthTrackerModal } from './components/NomineeWealthTrackerModal';
 import { GeminiApiKeyModal } from './components/GeminiApiKeyModal';
 import { GeminiLiveInsightsCard } from './components/GeminiLiveInsightsCard';
+import { ThreatRadarBar } from './components/ThreatRadarBar';
+import { playScanSound, playAlertSound, playSafeChime } from './utils/soundEffects';
 import { AnalysisResult, SupportedLanguage } from './types';
 import { runSangyanAnalysis } from './engine/coreAnalyzer';
 import { analyzeWithGemini, isGeminiAiActive } from './engine/geminiAiService';
@@ -86,9 +88,17 @@ export function App() {
     imagePreviewUrl?: string
   ) => {
     setIsLoading(true);
+    playScanSound();
     // 1. Instant execution of deterministic Symbolic AI verification
     const result = runSangyanAnalysis(input, type, imagePreviewUrl);
     setAnalysisResult(result);
+
+    // Dynamic auditory cyber alert
+    if (result.overallAssessment === 'Critical' || result.overallAssessment === 'High') {
+      setTimeout(() => playAlertSound(), 600);
+    } else if (result.overallAssessment === 'Low' || result.overallAssessment === 'No Financial Risk') {
+      setTimeout(() => playSafeChime(), 600);
+    }
 
     // 2. Trigger Gemini Generative AI contextual reasoning & multimodal enrichment
     triggerGeminiEnrichment(result, imagePreviewUrl);
@@ -127,6 +137,9 @@ export function App() {
         onOpenNomineeTracker={() => setShowNomineeTracker(true)}
         onOpenAiConfig={() => setShowAiConfig(true)}
       />
+
+      {/* Real-time National Financial Cyber Threat Radar */}
+      <ThreatRadarBar lang={lang} />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -196,7 +209,11 @@ export function App() {
                 )}
 
                 {/* 1. TOP: RISK ASSESSMENT */}
-                <RiskAssessmentCard result={analysisResult} lang={lang} />
+                <RiskAssessmentCard
+                  result={analysisResult}
+                  lang={lang}
+                  onOpenComplaintDraft={() => setShowComplaintDraft(true)}
+                />
 
                 {/* LIVE GENERATIVE AI REASONING (Google Gemini 1.5 Flash - Flaw 1 Solution) */}
                 <GeminiLiveInsightsCard
