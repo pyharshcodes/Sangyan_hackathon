@@ -114,7 +114,27 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang, onOpenSim
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const inputWorkstationRef = useRef<HTMLDivElement>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const urlInputRef = useRef<HTMLInputElement>(null);
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
+  const handleSelectTab = (tab: 'text' | 'image' | 'url') => {
+    setActiveTab(tab);
+    setTimeout(() => {
+      if (inputWorkstationRef.current) {
+        inputWorkstationRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+      if (tab === 'text') {
+        textAreaRef.current?.focus();
+      } else if (tab === 'url') {
+        urlInputRef.current?.focus();
+      }
+    }, 60);
+  };
 
   const toggleVoiceInput = () => {
     const SpeechRecognition =
@@ -357,7 +377,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang, onOpenSim
             <div className="mt-8 flex flex-wrap items-center gap-3 max-w-xl">
               {/* Button 1: CHECK A MESSAGE */}
               <button
-                onClick={() => setActiveTab('text')}
+                onClick={() => handleSelectTab('text')}
                 className={`w-full sm:w-auto sm:flex-1 min-h-[48px] py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center space-x-2.5 cursor-pointer ${
                   activeTab === 'text'
                     ? 'bg-[#0B1B3D] text-white shadow-md ring-2 ring-[#0B1B3D]/30 border border-slate-900'
@@ -370,7 +390,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang, onOpenSim
 
               {/* Button 2: CHECK A LINK */}
               <button
-                onClick={() => setActiveTab('url')}
+                onClick={() => handleSelectTab('url')}
                 className={`w-full sm:w-auto sm:flex-1 min-h-[48px] py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center space-x-2.5 cursor-pointer ${
                   activeTab === 'url'
                     ? 'bg-[#0B1B3D] text-white shadow-md ring-2 ring-[#0B1B3D]/30 border border-slate-900'
@@ -383,7 +403,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang, onOpenSim
 
               {/* Button 3: UPLOAD SCREENSHOT */}
               <button
-                onClick={() => setActiveTab('image')}
+                onClick={() => handleSelectTab('image')}
                 className={`w-full sm:w-auto sm:flex-1 min-h-[48px] py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center space-x-2.5 cursor-pointer ${
                   activeTab === 'image'
                     ? 'bg-[#0B1B3D] text-white shadow-md ring-2 ring-[#0B1B3D]/30 border border-slate-900'
@@ -450,7 +470,11 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang, onOpenSim
       </div>
 
       {/* ACTIVE INPUT WORKSTATION - Opens Directly Below Active Tab */}
-      <div className="bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-8 space-y-5">
+      <div
+        ref={inputWorkstationRef}
+        id="input-workstation"
+        className="bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-8 space-y-5 scroll-mt-24 transition-all"
+      >
           {/* Guardrail Violation Alert */}
           {guardrailAlert && (
             <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start space-x-3 text-xs sm:text-sm text-amber-950 animate-fadeIn">
@@ -508,6 +532,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang, onOpenSim
               )}
 
               <textarea
+                ref={textAreaRef}
                 value={textContent}
                 onChange={(e) => {
                   setTextContent(e.target.value);
@@ -551,6 +576,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang, onOpenSim
               </div>
               <div className="relative">
                 <input
+                  ref={urlInputRef}
                   type="text"
                   value={urlContent}
                   onChange={(e) => {
