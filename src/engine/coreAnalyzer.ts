@@ -256,8 +256,11 @@ export function runSangyanAnalysis(
       let score = 5;
       const criticalCount = detectedPatterns.filter(p => p.severity === 'critical').length;
       const highCount = detectedPatterns.filter(p => p.severity === 'high').length;
-      score += criticalCount * 35;
+      score += criticalCount * 45;
       score += highCount * 18;
+      if (criticalCount >= 1) {
+        score = Math.max(score, 82);
+      }
       if (hasSuspiciousDomain) score += 30;
       const hasRegDiscrepancy = entityVerifications.some(v => v.status === 'Unverified / Discrepancy');
       if (hasRegDiscrepancy) score += 20;
@@ -465,7 +468,7 @@ export function runSangyanAnalysis(
   }
 
   // Safe Action Checklist
-  let safeNextSteps: { step: string; stepHi: string; critical: boolean }[] = [];
+  let safeNextSteps: { step: string; stepHi: string; stepBn?: string; stepAs?: string; critical: boolean }[] = [];
 
   if (overallAssessment === 'No Financial Risk') {
     if (
@@ -508,11 +511,15 @@ export function runSangyanAnalysis(
       {
         step: 'Do not transfer money or share credentials until you have independently confirmed the source.',
         stepHi: 'जब तक आप स्रोत की स्वतंत्र रूप से पुष्टि न कर लें, तब तक पैसे ट्रांसफर न करें और न ही कोई विवरण साझा करें।',
+        stepBn: 'উৎসটি স্বাধীনভাবে নিশ্চিত না করা পর্যন্ত কোনো টাকা পাঠাবেন না বা গোপন তথ্য শেয়ার করবেন না।',
+        stepAs: 'উৎসটো স্বতন্ত্ৰভাৱে নিশ্চিত নকৰালৈকে কোনো ধন নিদিব বা গোপন তথ্য ভাগ-বতৰা নকৰিব।',
         critical: true
       },
       {
         step: 'Check whether the organization or adviser is listed on the official SEBI directory (sebi.gov.in).',
         stepHi: 'जांचें कि क्या यह संस्था या सलाहकार सेबी की आधिकारिक डायरेक्टरी (sebi.gov.in) में पंजीकृत है।',
+        stepBn: 'প্রতিষ্ঠানটি সেবির অফিশিয়াল তালিকায় (sebi.gov.in) নিবন্ধিত কি না তা পরীক্ষা করুন।',
+        stepAs: 'প্ৰতিষ্ঠানটো সেবিৰ অফিচিয়েল তালিকাত (sebi.gov.in) পঞ্জীয়নভুক্ত নে নহয় পৰীক্ষা কৰক।',
         critical: false
       }
     ];
@@ -521,11 +528,15 @@ export function runSangyanAnalysis(
       {
         step: 'Continue building financial literacy using official investor education portals (investor.sebi.gov.in).',
         stepHi: 'आधिकारिक निवेशक शिक्षा पोर्टल्स (investor.sebi.gov.in) से अपनी वित्तीय समझ को बढ़ाते रहें।',
+        stepBn: 'সরকারি বিনিয়োগকারী শিক্ষা পোর্টাল (investor.sebi.gov.in) থেকে আর্থিক জ্ঞান বৃদ্ধি করুন।',
+        stepAs: 'চৰকাৰী বিনিয়োগকাৰী শিক্ষা পৰ্টেলৰ পৰা বিত্তীয় জ্ঞান বৃদ্ধি কৰি থাকক।',
         critical: false
       },
       {
         step: 'Remember: All market investments carry risk. Never invest money you cannot afford to risk based on social media claims.',
         stepHi: 'याद रखें: शेयर बाजार में हमेशा जोखिम होता है। सोशल मीडिया के दावों पर कभी उधार लेकर निवेश न करें।',
+        stepBn: 'মনে রাখবেন: সব শেয়ার বাজার বিনিয়োগেই ঝুঁকি থাকে। সোশ্যাল মিডিয়ার তথ্যে ঋণ নিয়ে বিনিয়োগ করবেন না।',
+        stepAs: 'মনত ৰাখিব: সকলো বজাৰ বিনিয়োগতে বিপদ থাকে। ছচিয়েল মিডিয়াৰ কথাত ধাৰ কৰি বিনিয়োগ নকৰিব।',
         critical: false
       }
     ];
@@ -535,26 +546,36 @@ export function runSangyanAnalysis(
       {
         step: 'DO NOT transfer money to personal UPI handles or unverified bank accounts.',
         stepHi: 'किसी भी निजी यूपीआई आईडी या गैर-मान्यता प्राप्त बैंक खाते में पैसे कभी ट्रांसफर न करें।',
+        stepBn: 'কোনো ব্যক্তিগত ইউপিআই বা অপরিচিত ব্যাংক অ্যাকাউন্টে কখনোই টাকা পাঠাবেন না।',
+        stepAs: 'কোনো ব্যক্তিগত ইউপিআই নম্বৰ বা অপৰিচিত বেংক একাউণ্টত কেতিয়াও ধন নিদিব।',
         critical: true
       },
       {
         step: 'NEVER share OTP, trading PIN, or login credentials via external SMS/WhatsApp links.',
         stepHi: 'एसएमएस या व्हाट्सएप पर आए किसी भी लिंक पर अपना ओटीपी, ट्रेडिंग पिन या पासवर्ड न भरें।',
+        stepBn: 'এসএমএস বা হোয়াটসঅ্যাপ লিংকে ওটিপি, ট্রেডিং পিন বা পাসওয়ার্ড কখনো প্রবেশ করাবেন না।',
+        stepAs: 'এছএমএছ বা হোৱাটছএপ লিংকত অ\'টিপি, ট্ৰেডিং পিন বা পাছৱৰ্ড কেতিয়াও প্ৰৱেশ নকৰাব।',
         critical: true
       },
       {
         step: 'Verify the intermediary independently on the official SEBI website (sebi.gov.in).',
         stepHi: 'सलाहकार या ब्रोकर का नाम सीधे सेबी की आधिकारिक वेबसाइट पर जाकर चेक करें।',
+        stepBn: 'সেবির অফিসিয়াল পোর্টাল (sebi.gov.in)-এ মধ্যস্থতাকারীর সত্যতা সরাসরি যাচাই করুন।',
+        stepAs: 'সেবিৰ অফিচিয়েল পৰ্টেলত মধ্যস্থতাকাৰীৰ সত্যতা পোনপটীয়াকৈ পৰীক্ষা কৰক।',
         critical: false
       },
       {
         step: 'Preserve evidence: Take screenshots of chats, payment QR codes, and phone numbers.',
         stepHi: 'सबूत सुरक्षित रखें: बातचीत, पेमेंट क्यूआर कोड और फोन नंबर के स्क्रीनशॉट सेव कर लें।',
+        stepBn: 'প্রমাণ সংরক্ষণ করুন: চ্যাট, পেমেন্ট কিউআর কোড এবং ফোন নম্বরের স্ক্রিনশট রাখুন।',
+        stepAs: 'প্ৰমাণ সংৰক্ষণ কৰক: চেট, পেমেন্ট কিউআৰ ক\'ড আৰু ফোন নম্বৰৰ স্ক্ৰিনশ্বট লৈ থওক।',
         critical: false
       },
       {
         step: 'If money was transferred, immediately dial National Cybercrime Helpline 1930.',
         stepHi: 'यदि पैसा भेज दिया है, तो तुरंत 1930 पर कॉल करें ताकि बैंक खाता समय रहते फ्रीज कराया जा सके।',
+        stepBn: 'টাকা পাঠিয়ে থাকলে অ্যাকাউন্ট ফ্রিজ করতে অবিলম্বে জাতীয় সাইবার ক্রাইম হেল্পলাইন ১৯৩০-এ কল করুন।',
+        stepAs: 'টকা পঠিয়াই থাকিলে একাউণ্ট ফ্ৰীজ কৰিবলৈ তৎকালে ৰাষ্ট্ৰীয় চাইবাৰ ক্ৰাইম হেল্পলাইন ১৯৩০ ত ফোন কৰক।',
         critical: true
       }
     ];

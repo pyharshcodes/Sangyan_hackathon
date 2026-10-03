@@ -2,7 +2,10 @@ import { RiskIndicator } from '../types';
 
 export function detectScamPatterns(text: string): RiskIndicator[] {
   const indicators: RiskIndicator[] = [];
-  const lower = text.toLowerCase();
+  const rawLower = text.toLowerCase();
+  // De-obfuscate spaced characters (e.g. "g u a r a n t e e d", "p r o f i t", "s e b i")
+  const deSpaced = rawLower.replace(/\b([a-z0-9%])(?:\s+([a-z0-9%])){2,}\b/gi, (match) => match.replace(/\s+/g, ''));
+  const lower = rawLower + ' ' + deSpaced;
 
   // Pattern 1: Guaranteed Returns / Zero Risk
   const isNegativeGuaranteeContext =
@@ -243,6 +246,39 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
       description: 'Directs funds to personal UPI handles or pooled accounts rather than approved SEBI banking rails (ASBA).',
       whyItMatters: 'IPO investments and primary market applications in India strictly require ASBA (Application Supported by Blocked Amount) through your own bank. Legitimate brokers NEVER ask you to send money to personal UPI addresses.',
       whyItMattersHi: 'असली आईपीओ का पैसा आपके खुद के बैंक खाते में ब्लॉक (ASBA) होता है। किसी व्यक्ति के निजी यूपीआई पर कभी पैसे न भेजें।'
+    });
+  }
+
+  // Pattern 9: Task-Based Ponzi / YouTube Like Scam (India's #1 Trending Cyber Fraud)
+  const isTaskScam =
+    lower.includes('like youtube') ||
+    lower.includes('like video') ||
+    lower.includes('subscribe channel and earn') ||
+    lower.includes('earn per like') ||
+    /per\s*like\s*₹?\s*\d+/i.test(lower) ||
+    /per\s*task\s*₹?\s*\d+/i.test(lower) ||
+    lower.includes('prepaid task') ||
+    lower.includes('merchant task') ||
+    lower.includes('hotel review commission') ||
+    lower.includes('google review task') ||
+    lower.includes('part-time job earn') ||
+    lower.includes('part time job earn') ||
+    lower.includes('task completion bonus') ||
+    lower.includes('telegram task') ||
+    lower.includes('video like karke kamao') ||
+    lower.includes('टास्क पूरा करें') ||
+    lower.includes('यूट्यूब लाइक');
+
+  if (isTaskScam) {
+    indicators.push({
+      id: 'pattern-task-ponzi-scam',
+      category: 'Withdrawal',
+      severity: 'critical',
+      title: 'Task-Based Ponzi / YouTube Like Deception Vector',
+      titleHi: 'टास्क-आधारित पोंजी / यूट्यूब लाइक जालसाजी',
+      description: 'Promises payments for simple tasks (liking videos, giving ratings) and traps victims into sending large prepaid deposits to unlock virtual commissions.',
+      whyItMatters: 'National Cybercrime Reporting Portal (1930) identifies Task Scams as India\'s fastest growing cyber fraud. Victims receive small initial payouts (₹150-₹500), but are then forced into "Prepaid Merchant Tasks" costing lakhs with zero withdrawal possible.',
+      whyItMattersHi: '1930 साइबर हेल्पलाइन के अनुसार यह भारत का सबसे तेज़ी से फैलता स्कैम है। शुरुआत में छोटे पैसे देकर भरोसा जीतते हैं, फिर बड़े प्रीपेड टास्क के नाम पर लाखों लूट लेते हैं।'
     });
   }
 

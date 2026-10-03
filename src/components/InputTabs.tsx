@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   Lock,
   Search,
-  Sparkles
+  Sparkles,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { DEMO_PRESETS } from '../data/demoPresets';
 import { DemoPreset, SupportedLanguage } from '../types';
@@ -41,9 +43,94 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
   const [guardrailAlert, setGuardrailAlert] = useState<string | null>(null);
   const [isOcrScanning, setIsOcrScanning] = useState(false);
   const [ocrProgressText, setOcrProgressText] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+
+  const toggleVoiceInput = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceNotice('Voice input is not supported in this browser. Please use Chrome or Edge.');
+      setTimeout(() => setVoiceNotice(null), 4000);
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      setVoiceNotice(null);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      if (lang === 'hi') {
+        recognition.lang = 'hi-IN';
+      } else if (lang === 'bn') {
+        recognition.lang = 'bn-IN';
+      } else if (lang === 'as') {
+        recognition.lang = 'as-IN';
+      } else {
+        recognition.lang = 'en-IN';
+      }
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setVoiceNotice(
+          lang === 'hi'
+            ? '🎙️ सुन रहे हैं... बोलिए (जैसे: "व्हाट्सएप पर 40% मुनाफे का मैसेज आया है...")'
+            : lang === 'bn'
+            ? '🎙️ শুনছি... বলুন (যেমন: "হোয়াটসঅ্যাপে ফিক্সড লাভের মেসেজ পেয়েছি...")'
+            : lang === 'as'
+            ? '🎙️ শুনি আছোঁ... কওক (যেনে: "হোৱাটছএপত লাভৰ বাৰ্তা পালোঁ...")'
+            : '🎙️ Listening... Speak your suspicious message clearly.'
+        );
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript + ' ';
+        }
+        if (transcript.trim()) {
+          setTextContent(transcript.trim());
+          checkProhibitedAdviceQuery(transcript.trim());
+        }
+      };
+
+      recognition.onerror = (err: any) => {
+        console.warn('Speech recognition error:', err);
+        setIsListening(false);
+        setVoiceNotice(
+          err.error === 'not-allowed'
+            ? 'Microphone permission denied. Please allow microphone access in browser.'
+            : 'Audio recording stopped. You can type or click the mic to try again.'
+        );
+        setTimeout(() => setVoiceNotice(null), 5000);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        setVoiceNotice(null);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err: any) {
+      console.warn('Speech recognition start failed:', err);
+      setIsListening(false);
+    }
+  };
 
   // Check for prohibited advisory queries across 5 critical vectors
   const checkProhibitedAdviceQuery = (input: string) => {
@@ -382,15 +469,50 @@ No investment claims or return promises.`;
         {activeTab === 'text' && (
           <form onSubmit={handleTextSubmit} className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <label className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
                   <MessageSquare className="w-4 h-4 text-slate-600" />
                   <span>{t.messageLabel}</span>
                 </label>
-                <span className="text-[11px] text-slate-400 font-mono">
-                  Client-side redacted
-                </span>
+                
+                {/* Speech-to-Text Voice Dictation Button */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleVoiceInput}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      isListening
+                        ? 'bg-rose-600 text-white animate-pulse shadow-xs ring-2 ring-rose-300'
+                        : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
+                    }`}
+                    title="Speak in Hindi, Bengali, Assamese or English to automatically dictate your message"
+                  >
+                    {isListening ? (
+                      <>
+                        <MicOff className="w-3.5 h-3.5 animate-bounce" />
+                        <span>{lang === 'hi' ? 'बोलना बंद करें' : lang === 'bn' ? 'থামান' : 'Stop Recording'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>{lang === 'hi' ? '🎙️ बोलकर बताएं (Mic)' : lang === 'bn' ? '🎙️ মুখে বলুন (Mic)' : '🎙️ Dictate Note (Mic)'}</span>
+                      </>
+                    )}
+                  </button>
+                  <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                    Client-side redacted
+                  </span>
+                </div>
               </div>
+
+              {/* Voice Listening Feedback Banner */}
+              {voiceNotice && (
+                <div className="mb-2 p-2.5 bg-indigo-50/90 border border-indigo-200 rounded-xl text-xs text-indigo-900 flex items-center justify-between animate-fadeIn">
+                  <span className="font-semibold">{voiceNotice}</span>
+                  {isListening && <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0 ml-2" />}
+                </div>
+              )}
+
               <textarea
                 value={textContent}
                 onChange={(e) => {

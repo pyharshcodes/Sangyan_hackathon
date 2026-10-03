@@ -150,3 +150,33 @@ describe('RED-TEAM AUDIT 6: Offline Demo Stability & Latency', () => {
     expect(elapsed).toBeLessThan(50); // High-speed deterministic execution
   });
 });
+
+describe('RED-TEAM AUDIT 7: Modern Task-Based Ponzi & YouTube Like Deception', () => {
+  it('detects modern task scams promising daily earnings for liking videos and prepaid tasks', () => {
+    const taskScamInput = 'Part-time job earn ₹3,000 daily! Simple task: like YouTube videos and subscribe channels. Earn ₹150 per like. Complete prepaid task to unlock VIP tier commissions.';
+    const result = runSangyanAnalysis(taskScamInput, 'text');
+    expect(result.overallAssessment).toBe('Critical');
+    expect(result.heuristicScore).toBeGreaterThanOrEqual(75);
+    expect(result.detectedPatterns.some((p) => p.id === 'pattern-task-ponzi-scam')).toBe(true);
+  });
+
+  it('detects evasive spaced-out character obfuscation designed to bypass keyword filters', () => {
+    const obfuscatedInput = 'Special offer: g u a r a n t e e d   4 0 %   p r o f i t in 24 hours. Transfer ₹5,000 to allocation wallet.';
+    const result = runSangyanAnalysis(obfuscatedInput, 'text');
+    expect(['Critical', 'High']).toContain(result.overallAssessment);
+    expect(result.detectedPatterns.some((p) => p.id === 'pattern-guaranteed-return')).toBe(true);
+  });
+});
+
+describe('RED-TEAM AUDIT 8: Expanded SEBI & AMC Directory Verification', () => {
+  it('correctly verifies Motilal Oswal, Geojit, and Axis Mutual Fund as legitimate registered entities', () => {
+    const moCheck = verifyEntityName('Motilal Oswal Financial Services');
+    expect(moCheck.status).toBe('Verified Official');
+
+    const geojitCheck = verifyEntityName('Geojit Financial Services');
+    expect(geojitCheck.status).toBe('Verified Official');
+
+    const axisMfCheck = verifyEntityName('Axis Mutual Fund');
+    expect(axisMfCheck.status).toBe('Verified Official');
+  });
+});

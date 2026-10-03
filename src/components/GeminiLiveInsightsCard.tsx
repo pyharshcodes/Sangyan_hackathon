@@ -80,10 +80,19 @@ export function GeminiLiveInsightsCard({
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="flex items-center gap-2">
             <span className="text-[11px] font-mono px-3 py-1 rounded-xl bg-white/10 text-indigo-200 border border-white/10">
               {insights.modelUsed || 'Google Gemini Pro / Flash'}
             </span>
+            {onOpenConfig && insights.modelUsed?.includes('Edge') && (
+              <button
+                onClick={onOpenConfig}
+                className="text-[10px] bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 px-2.5 py-1 rounded-xl font-bold cursor-pointer transition-all"
+                title="Enter your Google AI Studio API key for live cloud inference"
+              >
+                ⚡ Switch to Cloud API
+              </button>
+            )}
           </div>
         </div>
 

@@ -91,12 +91,8 @@ export function App() {
     const result = runSangyanAnalysis(input, type, imagePreviewUrl);
     setAnalysisResult(result);
 
-    // 2. If Gemini Generative AI key is available, run live contextual enrichment with multimodal image data
-    if (isGeminiAiActive()) {
-      triggerGeminiEnrichment(result, imagePreviewUrl);
-    } else {
-      setIsGeminiLoading(false);
-    }
+    // 2. Trigger Gemini Generative AI contextual reasoning & multimodal enrichment
+    triggerGeminiEnrichment(result, imagePreviewUrl);
   };
 
   const handleLoadingComplete = () => {

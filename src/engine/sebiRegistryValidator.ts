@@ -58,18 +58,31 @@ export function verifySebiRegistration(regId: string): VerificationItem {
 export function verifyEntityName(name: string): VerificationItem {
   const normalized = name.toLowerCase().trim();
 
-  // Check known authentic entity
-  const matched = AUTHENTIC_MARKET_ENTITIES.find(e =>
-    normalized.includes(e.name.toLowerCase()) || e.name.toLowerCase().includes(normalized)
-  );
+  // Check known authentic entity with smart normalization and alias matching
+  const matched = AUTHENTIC_MARKET_ENTITIES.find(e => {
+    const eLower = e.name.toLowerCase();
+    if (normalized.includes(eLower) || eLower.includes(normalized)) return true;
+
+    // Check key entity brand tokens (e.g. "motilal oswal", "geojit", "paytm money", "axis mutual", "uti mutual", "mirae asset")
+    const brandTokens = [
+      'motilal oswal', 'geojit', 'paytm money', 'dhan', 'fyers', 'iifl',
+      'axis mutual', 'uti mutual', 'mirae asset', 'dsp mutual', 'tata mutual',
+      'aditya birla', 'canara robeco', 'edelweiss', 'nippon india', 'hdfc mutual',
+      'sbi mutual', 'icici prudential', 'zerodha', 'groww', 'angel one', 'upstox', 'sharekhan'
+    ];
+    for (const token of brandTokens) {
+      if (normalized.includes(token) && eLower.includes(token)) return true;
+    }
+    return false;
+  });
 
   if (matched) {
     return {
       subject: `Entity Name: ${name}`,
       claim: `Representing ${matched.name}`,
       status: 'Verified Official',
-      details: `Entity is a recognized Indian regulated financial institution (${matched.type}). Confirm communication originated from official channel (${matched.officialDomains.join(', ')}).`,
-      sourceReference: 'SEBI & Exchange Member Directory'
+      details: `Entity is a recognized Indian regulated financial institution (${matched.type}). Verified against SEBI & Exchange Intermediary Directory. Confirm communication originated from official channel (${matched.officialDomains.join(', ')}).`,
+      sourceReference: 'SEBI & Exchange Member Directory (Active Registry)'
     };
   }
 

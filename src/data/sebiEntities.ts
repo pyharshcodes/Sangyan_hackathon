@@ -105,6 +105,36 @@ export const AUTHENTIC_MARKET_ENTITIES: RegisteredBrokerInfo[] = [
     sebiRegPrefix: 'INZ000010231',
     type: 'Stock Broker / Depository Participant'
   },
+  {
+    name: 'Geojit Financial Services Limited',
+    officialDomains: ['geojit.com'],
+    sebiRegPrefix: 'INZ000104737',
+    type: 'Stock Broker / Depository Participant'
+  },
+  {
+    name: 'Dhan (Moneylicious Securities Private Limited)',
+    officialDomains: ['dhan.co'],
+    sebiRegPrefix: 'INZ000006031',
+    type: 'Stock Broker / Depository Participant'
+  },
+  {
+    name: 'Paytm Money Limited',
+    officialDomains: ['paytmmoney.com'],
+    sebiRegPrefix: 'INZ000240532',
+    type: 'Stock Broker / Depository Participant'
+  },
+  {
+    name: 'Fyers Securities Private Limited',
+    officialDomains: ['fyers.in'],
+    sebiRegPrefix: 'INZ000008524',
+    type: 'Stock Broker / Depository Participant'
+  },
+  {
+    name: 'IIFL Securities Limited',
+    officialDomains: ['iiflsecurities.com', 'indiainfoline.com'],
+    sebiRegPrefix: 'INZ000164132',
+    type: 'Stock Broker / Depository Participant'
+  },
 
   // --- Prominent Mutual Fund AMCs ---
   {
@@ -129,6 +159,60 @@ export const AUTHENTIC_MARKET_ENTITIES: RegisteredBrokerInfo[] = [
     name: 'Nippon India Mutual Fund',
     officialDomains: ['nipponindiamf.com'],
     sebiRegPrefix: 'MF/022/95/1',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'Axis Mutual Fund (Axis Asset Management Company)',
+    officialDomains: ['axismf.com'],
+    sebiRegPrefix: 'MF/061/09/02',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'UTI Mutual Fund (UTI Asset Management Company)',
+    officialDomains: ['utimf.com'],
+    sebiRegPrefix: 'MF/048/03/01',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'Mirae Asset Mutual Fund (Mirae Asset Investment Managers)',
+    officialDomains: ['miraeassetmf.co.in'],
+    sebiRegPrefix: 'MF/058/08/03',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'Kotak Mahindra Mutual Fund (Kotak Mahindra AMC)',
+    officialDomains: ['kotakmf.com'],
+    sebiRegPrefix: 'MF/038/98/1',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'Tata Mutual Fund (Tata Asset Management Limited)',
+    officialDomains: ['tatamutualfund.com'],
+    sebiRegPrefix: 'MF/023/95/2',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'Aditya Birla Sun Life Mutual Fund',
+    officialDomains: ['mutualfund.adityabirlacapital.com'],
+    sebiRegPrefix: 'MF/020/94/8',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'DSP Mutual Fund (DSP Investment Managers)',
+    officialDomains: ['dspim.com'],
+    sebiRegPrefix: 'MF/036/97/5',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'Canara Robeco Mutual Fund',
+    officialDomains: ['canararobeco.com'],
+    sebiRegPrefix: 'MF/014/93/2',
+    type: 'SEBI Registered Mutual Fund AMC'
+  },
+  {
+    name: 'Edelweiss Mutual Fund (Edelweiss Asset Management)',
+    officialDomains: ['edelweissmf.com'],
+    sebiRegPrefix: 'MF/059/08/04',
     type: 'SEBI Registered Mutual Fund AMC'
   },
 

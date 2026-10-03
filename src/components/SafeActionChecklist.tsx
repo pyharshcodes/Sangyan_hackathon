@@ -23,8 +23,10 @@ export const SafeActionChecklist: React.FC<SafeActionChecklistProps> = ({
     setCheckedItems((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
-  const getStepText = (item: { step: string; stepHi: string }) => {
+  const getStepText = (item: { step: string; stepHi: string; stepBn?: string; stepAs?: string }) => {
     if (lang === 'hi') return item.stepHi || item.step;
+    if (lang === 'bn') return item.stepBn || item.step;
+    if (lang === 'as') return item.stepAs || item.step;
     return item.step;
   };
 

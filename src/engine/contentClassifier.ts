@@ -199,7 +199,16 @@ export function classifyDocumentContentType(
       'ransom fee',
       'pay 20%',
       'unfreeze fee',
-      'allocation wallet'
+      'allocation wallet',
+      'prepaid task',
+      'merchant task',
+      'like youtube',
+      'earn per like',
+      'per like ₹',
+      'per task ₹',
+      'hotel review commission',
+      'part-time job earn',
+      'part time job earn'
     ];
     if (paymentContentKeywords.some(k => lower.includes(k))) {
       return 'PAYMENT_TRANSACTION_CONTENT';
@@ -367,7 +376,11 @@ export function determineFinancialRelevance(
     'bonus',
     'dividend',
     'allotment',
-    'ipo'
+    'ipo',
+    'task',
+    'prepaid',
+    'commission',
+    'per like'
   ];
 
   const hasAnyFinancialToken = genericFinancialKeywords.some(k => lower.includes(k));

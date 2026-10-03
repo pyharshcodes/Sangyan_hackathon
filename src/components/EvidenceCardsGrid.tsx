@@ -173,7 +173,13 @@ export const EvidenceCardsGrid: React.FC<EvidenceCardsGridProps> = ({ cards, lan
 
                 {/* Explanation */}
                 <p className="text-xs text-slate-700 leading-relaxed font-normal">
-                  {lang === 'hi' ? card.explanationHi : card.explanation}
+                  {lang === 'hi'
+                    ? card.explanationHi
+                    : lang === 'bn'
+                    ? card.explanationBn || card.explanation
+                    : lang === 'as'
+                    ? card.explanationAs || card.explanation
+                    : card.explanation}
                 </p>
               </div>
 

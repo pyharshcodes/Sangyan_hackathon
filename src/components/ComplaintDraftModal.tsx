@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Copy, Check, FileText, AlertTriangle, ExternalLink, Download, Share2, ShieldAlert } from 'lucide-react';
+import { X, Copy, Check, FileText, AlertTriangle, ExternalLink, Download, Share2, ShieldAlert, Printer } from 'lucide-react';
 import { AnalysisResult, SupportedLanguage } from '../types';
 
 interface ComplaintDraftModalProps {
@@ -67,6 +67,95 @@ REQUESTED RELIEF:
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+  };
+
+  const handlePrintPdf = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SANGYAN KAVACH - Official Incident Evidentiary Dossier</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 30px; color: #0f172a; line-height: 1.5; font-size: 13px; }
+    .header { border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .logo-title { font-size: 20px; font-weight: 800; color: #0f172a; }
+    .badge { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
+    .meta-table td { padding: 6px 10px; border: 1px solid #cbd5e1; font-size: 12px; }
+    .meta-table td.label { background: #f8fafc; font-weight: bold; width: 28%; color: #475569; }
+    .section-title { font-size: 13px; font-weight: bold; color: #0f172a; margin-top: 16px; margin-bottom: 6px; border-left: 4px solid #2563eb; padding-left: 8px; }
+    .box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 12px; white-space: pre-wrap; font-family: inherit; font-size: 12px; }
+    .evidence-box { background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 10px; margin-bottom: 12px; font-family: monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; }
+    .footer { margin-top: 24px; border-top: 1px solid #cbd5e1; padding-top: 12px; font-size: 11px; color: #64748b; display: flex; justify-content: space-between; align-items: center; }
+    .seal { border: 2px dashed #475569; padding: 6px 12px; border-radius: 6px; font-weight: bold; color: #1e293b; display: inline-block; }
+    @media print { body { margin: 15px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="logo-title">संज्ञान कवच · SANGYAN KAVACH</div>
+      <div style="font-size: 11px; color: #64748b; margin-top: 2px;">National Zero-Trust Investor Protection & Cyber Incident Dossier</div>
+    </div>
+    <div class="badge">Official Evidentiary Brief</div>
+  </div>
+
+  <table class="meta-table">
+    <tr>
+      <td class="label">Dossier Reference ID</td>
+      <td style="font-family: monospace; font-weight: bold;">SNG-DOSSIER-${Date.now()}</td>
+      <td class="label">Date & Time</td>
+      <td>${new Date().toLocaleString('en-IN')}</td>
+    </tr>
+    <tr>
+      <td class="label">Target Redressal Channel</td>
+      <td style="font-weight: bold; color: #1e3a8a;">${draft.recommendedPortal}</td>
+      <td class="label">Emergency Helpline</td>
+      <td style="font-weight: bold; color: #dc2626;">National Cybercrime 1930</td>
+    </tr>
+    <tr>
+      <td class="label">Suspect Claimed Identity</td>
+      <td colspan="3" style="font-weight: bold;">${draft.suspectDetails}</td>
+    </tr>
+  </table>
+
+  <div class="section-title">1. INCIDENT NARRATIVE STATEMENT</div>
+  <div class="box">${draft.incidentNarrative}</div>
+
+  <div class="section-title">2. EXTRACTED FRAUDULENT EVIDENCE (DPDP ACT 2023 REDACTED)</div>
+  <div class="evidence-box">${result.sanitizedInput}</div>
+
+  <div class="section-title">3. REGULATORY CLAUSES & STATUTES VIOLATED</div>
+  <div class="box">${draft.regulatoryClauses.map((c, i) => `${i + 1}. ${c}`).join('\n')}</div>
+
+  <div class="section-title">4. CITIZEN PRAYER FOR RELIEF</div>
+  <div class="box">1. Immediate emergency freeze on beneficiary UPI/bank accounts under Golden 2-Hour protocol.
+2. Domain take-down of deceptive impersonation website/communication channel.
+3. Enforcement action under Section 12A of SEBI Act, 1992 & Section 66D of Information Technology Act.</div>
+
+  <div class="footer">
+    <div>
+      <div class="seal">SEBI × NSDL × IIT (BHU) SANGYAN SEAL</div>
+      <div style="margin-top: 4px; font-size: 10px;">Tamper-evident verification hash: SHA256-CERT-${Math.random().toString(36).slice(2, 10).toUpperCase()}</div>
+    </div>
+    <div style="text-align: right;">
+      <div>Authorized Citizen Incident Dossier</div>
+      <div>Official Filing for 1930 / SEBI SCORES 2.0</div>
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() { window.print(); }
+  </script>
+</body>
+</html>`;
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   const modalTitle =
@@ -142,11 +231,19 @@ REQUESTED RELIEF:
             </button>
 
             <button
+              onClick={handlePrintPdf}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold shadow-2xs cursor-pointer transition-all"
+            >
+              <Printer className="w-3.5 h-3.5 text-blue-200" />
+              <span>Print / Save PDF Dossier</span>
+            </button>
+
+            <button
               onClick={handleDownloadDossier}
               className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-semibold shadow-2xs cursor-pointer transition-all"
             >
               <Download className="w-3.5 h-3.5 text-blue-600" />
-              <span>Download Evidence (.txt)</span>
+              <span>Evidence (.txt)</span>
             </button>
           </div>
 

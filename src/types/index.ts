@@ -100,6 +100,8 @@ export interface EvidenceCard {
   severity: 'safe' | 'warning' | 'danger' | 'neutral';
   explanation: string;
   explanationHi: string;
+  explanationBn?: string;
+  explanationAs?: string;
   evidence: string;
 }
 
@@ -170,6 +172,8 @@ export interface AnalysisResult {
   safeNextSteps: {
     step: string;
     stepHi: string;
+    stepBn?: string;
+    stepAs?: string;
     critical: boolean;
   }[];
 
