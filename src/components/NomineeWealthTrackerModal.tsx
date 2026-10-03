@@ -45,7 +45,7 @@ export function NomineeWealthTrackerModal({ onClose, lang }: NomineeWealthTracke
 
   const handleDownloadDossier = () => {
     const text = `================================================================================
-SANGYAN KAVACH - FAMILY WEALTH & NOMINEE RESILIENCE DOSSIER (TRACK B)
+SANGYAN KAVACH - FAMILY WEALTH & NOMINEE RESILIENCE DOSSIER
 Initiative aligned with SEBI & NSDL Investor Protection Mandate
 Generated: ${new Date().toLocaleString('en-IN')}
 ================================================================================
@@ -105,7 +105,7 @@ OFFICIAL HELPLINES:
             <div>
               <div className="flex items-center space-x-2">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-200 uppercase tracking-wider font-mono">
-                  Track B: Redressal & Claims
+                  Investor Redressal & Demat Claims
                 </span>
                 <span className="text-[10px] text-blue-200">SEBI & IEPF Mandate</span>
               </div>

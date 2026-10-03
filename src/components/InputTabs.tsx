@@ -15,17 +15,13 @@ import {
   Mic,
   MicOff
 } from 'lucide-react';
-import { DEMO_PRESETS } from '../data/demoPresets';
-import { DemoPreset, SupportedLanguage } from '../types';
+import { SupportedLanguage } from '../types';
 import { TRANSLATIONS } from '../data/translations';
 import { validateSafeUrl } from '../engine/safeUrlValidator';
 import { validateUploadedFile } from '../engine/safeFileValidator';
 import { inspectAndNeutralizePromptInjection } from '../engine/promptInjectionDefense';
 import { evaluateGuardrailQuery } from '../engine/guardrailInterceptor';
 import { extractTextFromImage } from '../engine/ocrService';
-import { WhatsAppBharatSimulator } from './WhatsAppBharatSimulator';
-import { FeaturePhoneIvrSimulator } from './FeaturePhoneIvrSimulator';
-import { CommunityThreatLedger } from './CommunityThreatLedger';
 import { playScanSound } from '../utils/soundEffects';
 
 interface InputTabsProps {
@@ -34,7 +30,6 @@ interface InputTabsProps {
 }
 
 export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
-  const [inputMode, setInputMode] = useState<'standard' | 'whatsapp' | 'featurephone'>('standard');
   const [activeTab, setActiveTab] = useState<'text' | 'image' | 'url'>('text');
   const [textContent, setTextContent] = useState('');
   const [urlContent, setUrlContent] = useState('');
@@ -208,59 +203,29 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
     };
     reader.readAsDataURL(file);
 
-    // Check if this is a known offline testing demo preset file
-    const lowerName = fileCheck.sanitizedName.toLowerCase();
+    // Execute REAL ON-DEVICE TESSERACT.JS OCR in Web Worker
+    setIsOcrScanning(true);
+    setOcrProgressText('Initializing on-device OCR...');
+    setOcrText(`[Scanning image on-device via Tesseract.js Web Worker...]`);
+
     let extractedText = '';
+    try {
+      const ocrResult = await extractTextFromImage(file, (p) => {
+        setOcrProgressText(`${p.status} (${Math.round(p.progress * 100)}%)`);
+      });
 
-    if (lowerName.includes('demo_jee') || lowerName.includes('demo_marksheet')) {
-      extractedText = `National Testing Agency (NTA) - Joint Entrance Examination (JEE Main) Score Card
-Candidate Name: Candidate
-Roll Number: 240310123456
-Physics: 98.4 Percentile | Chemistry: 96.2 Percentile | Mathematics: 99.1 Percentile
-Total NTA Score: 98.65 Percentile
-Status: Qualified for JEE Advanced`;
-      setOcrText(extractedText);
-    } else if (lowerName.includes('demo_selfie')) {
-      extractedText = `[Personal photograph - No financial content detected in image]`;
-      setOcrText(extractedText);
-    } else if (lowerName.includes('demo_college_id')) {
-      extractedText = `Student Identity Card - Indian Institute of Technology (BHU) Varanasi
-Name: Student
-Roll Number: 21075042
-Department: Computer Science and Engineering
-Valid through: 2026`;
-      setOcrText(extractedText);
-    } else if (lowerName.includes('demo_bank')) {
-      extractedText = `State Bank of India - Account Statement
-Account Number: XXXXXXXX1234
-Branch: Varanasi Main
-Transactions: Monthly Salary Credit, Grocery UPI Debit, Electricity Bill Payment.
-No investment claims or return promises.`;
-      setOcrText(extractedText);
-    } else {
-      // Execute REAL ON-DEVICE TESSERACT.JS OCR in Web Worker
-      setIsOcrScanning(true);
-      setOcrProgressText('Initializing on-device OCR...');
-      setOcrText(`[Scanning image on-device via Tesseract.js Web Worker...]`);
-
-      try {
-        const ocrResult = await extractTextFromImage(file, (p) => {
-          setOcrProgressText(`${p.status} (${Math.round(p.progress * 100)}%)`);
-        });
-
-        if (ocrResult.text && ocrResult.text.length > 5) {
-          extractedText = ocrResult.text;
-        } else {
-          extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify & Inspect Screenshot' to run Google Gemini Multimodal analysis directly on this image)`;
-        }
-      } catch (err) {
-        extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify & Inspect Screenshot' to run Google Gemini Multimodal analysis directly on this image)`;
-      } finally {
-        setIsOcrScanning(false);
-        setOcrProgressText('');
+      if (ocrResult.text && ocrResult.text.length > 5) {
+        extractedText = ocrResult.text;
+      } else {
+        extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify Screenshot' to inspect financial claims.)`;
       }
-      setOcrText(extractedText);
+    } catch (err) {
+      extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify Screenshot' to inspect financial claims.)`;
+    } finally {
+      setIsOcrScanning(false);
+      setOcrProgressText('');
     }
+    setOcrText(extractedText);
   };
 
   const handleImageSubmit = () => {
@@ -271,40 +236,6 @@ No investment claims or return promises.`;
         ? ocrText
         : `Screenshot Analysis: ${selectedImageName || 'uploaded_image'}. Inspect for financial fraud, unverified SEBI claims, guaranteed returns, or phishing.`;
     onAnalyze(textToSend, 'image', imagePreviewUrl || undefined);
-  };
-
-  const loadPreset = (preset: DemoPreset) => {
-    playScanSound();
-    setGuardrailAlert(null);
-    if (preset.type === 'text') {
-      setActiveTab('text');
-      setTextContent(preset.content);
-      onAnalyze(preset.content, 'text');
-    } else if (preset.type === 'url') {
-      setActiveTab('url');
-      setUrlContent(preset.content);
-      onAnalyze(preset.content, 'url');
-    } else if (preset.type === 'image') {
-      setActiveTab('image');
-      setSelectedImageName(preset.imageBadgeText || 'DEMO_CERTIFICATE.PNG');
-      setOcrText(preset.content);
-      const mockSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240"><rect width="400" height="240" fill="%23f8fafc" stroke="%23cbd5e1" stroke-width="2"/><text x="200" y="60" font-family="sans-serif" font-size="13" font-weight="bold" fill="%230f172a" text-anchor="middle">CERTIFICATE OF WEALTH MANAGEMENT</text><text x="200" y="100" font-family="sans-serif" font-size="12" fill="%23b91c1c" text-anchor="middle">REG NO: INP887766554</text><text x="200" y="140" font-family="sans-serif" font-size="12" fill="%23334155" text-anchor="middle">GUARANTEED 40% MONTHLY INTEREST</text><text x="200" y="180" font-family="sans-serif" font-size="11" fill="%2364748b" text-anchor="middle">SPECIAL ALLOCATION POOL 2026</text></svg>';
-      setImagePreviewUrl(mockSvg);
-      onAnalyze(preset.content, 'image', mockSvg);
-    }
-  };
-
-  const getPresetTitle = (preset: DemoPreset) => {
-    if (lang === 'bn') return preset.titleBn || preset.title;
-    if (lang === 'as') return preset.titleAs || preset.title;
-    if (lang === 'hi') return preset.titleHi || preset.title;
-    return preset.title;
-  };
-
-  const getPresetDesc = (preset: DemoPreset) => {
-    if (lang === 'bn') return preset.shortDescBn || preset.shortDesc;
-    if (lang === 'as') return preset.shortDescAs || preset.shortDesc;
-    return preset.shortDesc;
   };
 
   return (
@@ -406,62 +337,8 @@ No investment claims or return promises.`;
         </div>
       </div>
 
-      {/* CHANNEL DELIVERY SELECTOR (Bharat-First Delivery Mode - Flaw 5 Solution) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-2xs">
-        <div className="flex items-center space-x-2 text-xs font-bold text-slate-700 ml-1">
-          <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-          <span>{lang === 'hi' ? 'वितरण माध्यम (Delivery Channel):' : 'Investor Access Channel:'}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setInputMode('standard')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              inputMode === 'standard'
-                ? 'bg-blue-900 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            💻 {lang === 'hi' ? 'वेब जांच कंसोल' : 'Web Verification Console'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setInputMode('whatsapp')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              inputMode === 'whatsapp'
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-            }`}
-          >
-            📱 {lang === 'hi' ? 'व्हाट्सएप भारत सिमुलेटर (Tier-2/3 मोड)' : 'WhatsApp Bharat Simulator'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setInputMode('featurephone')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              inputMode === 'featurephone'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
-            }`}
-          >
-            📞 {lang === 'hi' ? '1800 आईवीआर व USSD (फीचर फोन)' : '1800-IVR / USSD (Feature Phone)'}
-          </button>
-        </div>
-      </div>
-
-      {inputMode === 'whatsapp' ? (
-        <WhatsAppBharatSimulator
-          onSelectSampleForAnalysis={(text, type) => onAnalyze(text, type)}
-          lang={lang}
-        />
-      ) : inputMode === 'featurephone' ? (
-        <FeaturePhoneIvrSimulator
-          onAnalyzeSample={(text, type) => onAnalyze(text, type)}
-          lang={lang}
-        />
-      ) : (
-        /* ACTIVE INPUT WORKSTATION - Opens Directly Below Active Tab */
-        <div className="bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-8 space-y-5">
+      {/* ACTIVE INPUT WORKSTATION - Opens Directly Below Active Tab */}
+      <div className="bg-white/95 backdrop-blur-md rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-8 space-y-5">
           {/* Guardrail Violation Alert */}
           {guardrailAlert && (
             <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start space-x-3 text-xs sm:text-sm text-amber-950 animate-fadeIn">
@@ -692,58 +569,6 @@ No investment claims or return promises.`;
           </div>
         )}
       </div>
-      )}
-
-      {/* ============================================================== */}
-      {/* COMMON VERIFICATION SAMPLES - Quick Citizen Reference           */}
-      {/* ============================================================== */}
-      <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-5 sm:p-6 space-y-3 shadow-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              {t.testScenariosTitle}
-            </span>
-          </div>
-          <span className="text-[11px] text-slate-500 font-medium">
-            {t.oneClickEval}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {DEMO_PRESETS.map((preset) => {
-            const isControl = preset.id === 'preset-genuine-education';
-            return (
-              <button
-                key={preset.id}
-                onClick={() => loadPreset(preset)}
-                className={`p-3 rounded-2xl text-left border transition-all text-xs flex flex-col justify-between hover:shadow-xs min-h-[70px] cursor-pointer ${
-                  isControl
-                    ? 'bg-emerald-50/80 border-emerald-300 hover:bg-emerald-100/80 text-emerald-950'
-                    : 'bg-white border-slate-200 hover:border-slate-400 hover:bg-slate-50 text-slate-800'
-                }`}
-              >
-                <div className="font-bold flex items-center justify-between w-full">
-                  <span className="truncate">{getPresetTitle(preset)}</span>
-                  {isControl && (
-                    <span className="text-[9px] uppercase font-bold bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded shrink-0 ml-1">
-                      Legitimate
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-slate-500 line-clamp-1 mt-1">
-                  {getPresetDesc(preset)}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ============================================================== */}
-      {/* CROWDSOURCED COMMUNITY THREAT INTELLIGENCE (Hackathon Page 5)  */}
-      {/* ============================================================== */}
-      <CommunityThreatLedger lang={lang} />
     </div>
   );
 };

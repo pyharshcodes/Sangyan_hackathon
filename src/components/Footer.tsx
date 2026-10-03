@@ -148,9 +148,9 @@ export const Footer: React.FC<FooterProps> = ({ lang }) => {
         <div className="border-t border-slate-800/80 mt-8 pt-4 flex flex-col sm:flex-row items-center justify-between text-slate-500 text-[11px]">
           <div>© 2026 SANGYAN KAVACH · Public Digital Defense Infrastructure</div>
           <div className="mt-2 sm:mt-0 flex items-center space-x-4">
-            <span>Track A (Primary): Fraud & Scam Resilience</span>
+            <span>Public Defense: Fraud & Scam Resilience</span>
             <span>•</span>
-            <span>Track E & C: Content Literacy & Bharat Education</span>
+            <span>Investor Literacy & Multilingual Education</span>
           </div>
         </div>
       </div>

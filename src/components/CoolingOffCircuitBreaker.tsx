@@ -73,7 +73,7 @@ export function CoolingOffCircuitBreaker({ lang, detectedBiases = ['FOMO (Fear o
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider font-mono">
-                Track D: Behavioural Resilience
+                Behavioural Resilience Protocol
               </span>
               <span className="text-[10px] font-semibold text-slate-500">
                 SEBI Investor Protection Directive

@@ -177,7 +177,7 @@ export function App() {
                       className="min-h-[44px] inline-flex items-center space-x-1.5 text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-xs font-bold px-3.5 py-2 rounded-2xl transition-all cursor-pointer"
                     >
                       <HeartHandshake className="w-4 h-4 text-blue-700" />
-                      <span>{lang === 'hi' ? 'परिवार नॉमिनी ऑडिट (Track B)' : 'Nominee Audit (Track B)'}</span>
+                      <span>{lang === 'hi' ? 'परिवार नॉमिनी ऑडिट' : 'Nominee Audit'}</span>
                     </button>
                     <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-mono text-[11px] font-bold uppercase">
                       {t.inspectedVia} {analysisResult.inputType}

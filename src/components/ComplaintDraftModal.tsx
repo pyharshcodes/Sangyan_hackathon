@@ -190,7 +190,7 @@ REQUESTED RELIEF:
                 {modalTitle}
               </h3>
               <p className="text-[11px] text-slate-400">
-                Track B Grievance Assistant · Formatted for {draft.recommendedPortal}
+                Investor Grievance Assistant · Formatted for {draft.recommendedPortal}
               </p>
             </div>
           </div>

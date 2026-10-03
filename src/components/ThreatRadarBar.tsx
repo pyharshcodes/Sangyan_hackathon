@@ -89,7 +89,7 @@ export const ThreatRadarBar: React.FC<ThreatRadarBarProps> = ({ lang }) => {
         <div className="flex items-center space-x-1.5 shrink-0 bg-red-950/80 border border-red-500/40 text-red-400 px-2 py-0.5 rounded-full font-mono text-[10px] font-bold">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-ping inline-block" />
           <Radio className="w-3 h-3 text-red-400" />
-          <span>LIVE RADAR</span>
+          <span>PUBLIC ADVISORY</span>
         </div>
 
         <div className="flex items-center space-x-2 truncate">

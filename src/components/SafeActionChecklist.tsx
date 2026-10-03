@@ -99,7 +99,7 @@ export const SafeActionChecklist: React.FC<SafeActionChecklistProps> = ({
               className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 font-bold text-xs sm:text-sm transition-all shadow-xs flex items-center justify-center space-x-2 cursor-pointer"
             >
               <HeartHandshake className="w-4 h-4 text-blue-700" />
-              <span>{lang === 'hi' ? 'परिवार नॉमिनी ऑडिट (Track B)' : 'Family Nominee Audit (Track B)'}</span>
+              <span>{lang === 'hi' ? 'परिवार नॉमिनी ऑडिट' : 'Family Nominee Audit'}</span>
             </button>
           )}
         </div>
