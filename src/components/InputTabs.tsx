@@ -14,7 +14,9 @@ import {
   Sparkles,
   Mic,
   MicOff,
-  RefreshCw
+  RefreshCw,
+  Zap,
+  Smartphone
 } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { TRANSLATIONS } from '../data/translations';
@@ -24,13 +26,80 @@ import { inspectAndNeutralizePromptInjection } from '../engine/promptInjectionDe
 import { evaluateGuardrailQuery } from '../engine/guardrailInterceptor';
 import { extractTextFromImage } from '../engine/ocrService';
 import { playScanSound } from '../utils/soundEffects';
+import { TrendingScamsShowcase } from './TrendingScamsShowcase';
+import { CommunityThreatLedger } from './CommunityThreatLedger';
 
 interface InputTabsProps {
   onAnalyze: (input: string, type: 'text' | 'image' | 'url', imagePreviewUrl?: string) => void;
   lang: SupportedLanguage;
+  onOpenSimulator?: () => void;
 }
 
-export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
+interface DemoPreset {
+  id: string;
+  label: string;
+  labelHi: string;
+  badge: string;
+  badgeColor: string;
+  text: string;
+  expectedScore: string;
+  rationale: string;
+}
+
+const DEMO_PRESETS: DemoPreset[] = [
+  {
+    id: 'preset-safe-bill',
+    label: '🟢 Safe Electricity Bill',
+    labelHi: '🟢 बिजली बिल (नेगेटिव एविडेंस)',
+    badge: 'BENIGN CONTROL (0/100)',
+    badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+    text: "Your electricity bill of ₹1,248 is due on 8 October. Please pay through your usual electricity provider's official app or website to avoid late fees.",
+    expectedScore: '0/100 · Benign',
+    rationale: 'Negative Evidence Engine discounts -60 pts (Official app referral, 0 external links)'
+  },
+  {
+    id: 'preset-demat-kyc',
+    label: '🚨 Fake Demat KYC Freeze',
+    labelHi: '🚨 डीमैट सस्पेंशन फिशिंग',
+    badge: 'CRITICAL SCAM (96/100)',
+    badgeColor: 'bg-rose-100 text-rose-900 border-rose-300',
+    text: "URGENT: Your Demat trading account has been temporarily blocked due to incomplete KYC. Update PAN & bank details within 2 hours at https://nsdl-kyc-verify.in to avoid permanent suspension.",
+    expectedScore: '96/100 · Critical',
+    rationale: 'NSDL Impersonation, Credential Theft, 2-Hour Pressure Coercion'
+  },
+  {
+    id: 'preset-vip-ipo',
+    label: '🚨 VIP Telegram 300% Upper-Circuit',
+    labelHi: '🚨 वीआईपी 300% गारंटीड IPO स्कैम',
+    badge: 'CRITICAL SCAM (82/100)',
+    badgeColor: 'bg-purple-100 text-purple-900 border-purple-300',
+    text: "Prof. Rajesh Sharma (Reg: INA998877112) Guaranteed 300% profit in 48 hours on SME IPO! Transfer ₹25,000 to personal UPI.",
+    expectedScore: '82/100 · Critical',
+    rationale: 'SEBI Registration Checksum Failure, Guaranteed Returns, Personal UPI Diversion'
+  },
+  {
+    id: 'preset-sebi-edu',
+    label: '🟢 Official SEBI Investor Shiksha',
+    labelHi: '🟢 प्रामाणिक सेबी शिक्षा',
+    badge: 'SAFE CONTROL (05/100)',
+    badgeColor: 'bg-blue-100 text-blue-900 border-blue-300',
+    text: "SEBI Investor Awareness: Understanding Index Funds and Market Volatility. Past performance does not guarantee future results.",
+    expectedScore: '05/100 · Low Risk',
+    rationale: 'Legitimate Awareness Notice, Verified Disclosures, No Pressure'
+  },
+  {
+    id: 'preset-yt-task',
+    label: '🚨 YouTube Like / Job Fraud',
+    labelHi: '🚨 पार्ट-टाइम जॉब फ्रॉड',
+    badge: '1930 CYBER ALERT',
+    badgeColor: 'bg-amber-100 text-amber-900 border-amber-300',
+    text: "Part-time job earn ₹3,000 daily! Simple task: like YouTube videos and subscribe channels. Earn ₹150 per like. Complete prepaid task to unlock VIP commissions.",
+    expectedScore: 'Critical Scam',
+    rationale: 'Prepaid Task Bait, Phishing Commissions, Telegram Ponzi Channel'
+  }
+];
+
+export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang, onOpenSimulator }) => {
   const [activeTab, setActiveTab] = useState<'text' | 'image' | 'url'>('text');
   const [textContent, setTextContent] = useState('');
   const [urlContent, setUrlContent] = useState('');
@@ -325,6 +394,48 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
                 <span>{t.uploadScreenshotBtn}</span>
               </button>
             </div>
+
+            {/* 1-Click Jury Test Presets Bar (Quick Evaluation Chips) */}
+            <div className="mt-6 pt-5 border-t border-slate-200/80 max-w-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <div className="flex items-center space-x-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                  <span className="text-xs font-black uppercase tracking-wider text-slate-900 font-mono">
+                    {lang === 'hi' ? 'त्वरित जूरी टेस्ट चिप्स (1-क्लिक मूल्यांकन)' : '1-Click Jury Test Presets'}
+                  </span>
+                  <span className="text-[10px] bg-slate-900 text-amber-300 font-bold px-2 py-0.5 rounded-full font-mono">
+                    FAST EVAL
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 font-sans hidden sm:inline">
+                  Click any chip to test instantly:
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {DEMO_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('text');
+                      setTextContent(preset.text);
+                      onAnalyze(preset.text, 'text');
+                    }}
+                    className="group inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-900 border border-slate-200 hover:border-slate-900 text-slate-800 hover:text-white transition-all shadow-2xs hover:shadow-xs cursor-pointer text-left"
+                    title={`${preset.expectedScore} — ${preset.rationale}`}
+                  >
+                    <span className="text-xs font-bold leading-tight">
+                      {lang === 'hi' ? preset.labelHi : preset.label}
+                    </span>
+                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border transition-colors group-hover:bg-slate-800 group-hover:text-amber-300 group-hover:border-slate-700 ${preset.badgeColor}`}>
+                      {preset.badge}
+                    </span>
+                    <Zap className="w-3 h-3 text-amber-500 group-hover:text-amber-300 shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Hero Graphic Illustration */}
@@ -580,6 +691,57 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
           </div>
         )}
       </div>
+
+      {/* Bharat Feature Phone & WhatsApp Simulator Callout Banner */}
+      {onOpenSimulator && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-emerald-500/10 border border-amber-300/80 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-2xs">
+          <div className="flex items-start space-x-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Smartphone className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-black uppercase text-amber-900 tracking-wider font-mono">
+                  {lang === 'hi' ? 'ग्रामीण भारत व 0-इंटरनेट फीचर फोन' : 'TIER-2/3 & RURAL BHARAT INNOVATION'}
+                </span>
+                <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full font-mono">
+                  *99*1930# USSD & IVR
+                </span>
+              </div>
+              <h3 className="text-base font-extrabold text-slate-900 mt-0.5">
+                {lang === 'hi'
+                  ? 'भारत फीचर-फोन (IVR / USSD) व व्हाट्सएप सिमुलेटर'
+                  : 'Bharat Feature-Phone & WhatsApp Defense Simulator'}
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {lang === 'hi'
+                  ? 'बिना इंटरनेट के ₹1,200 के कीपैड फोन पर 1800-संज्ञान टोल-फ्री कॉल व *99# USSD चलाकर देखें।'
+                  : 'Experience zero-internet interactive keypad simulation & WhatsApp scam forward protection.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenSimulator}
+            className="w-full sm:w-auto inline-flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black text-xs sm:text-sm transition-all shadow-xs cursor-pointer shrink-0"
+          >
+            <span>{lang === 'hi' ? 'सिमुलेटर खोलें' : 'Open Simulator'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Trending Viral Scams Showcase (Live Jury Presets) */}
+      <TrendingScamsShowcase
+        onSelectScam={(text, type) => onAnalyze(text, type)}
+        lang={lang}
+      />
+
+      {/* Crowdsourced National Community Threat Intelligence Ledger */}
+      <CommunityThreatLedger
+        lang={lang}
+        onSelectThreat={(text) => onAnalyze(text, 'text')}
+      />
     </div>
   );
 };

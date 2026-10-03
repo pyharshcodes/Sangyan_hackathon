@@ -67,6 +67,18 @@ const TRENDING_SCAMS = [
     text: 'Mutual fund investments are subject to market risks, read all scheme related documents carefully before investing. A Systematic Investment Plan (SIP) allows disciplined investing through rupee cost averaging. It does not guarantee fixed profit.',
     preview: 'Mutual fund investments are subject to market risks...',
     highlights: 'Balanced Disclosures · No False Promises'
+  },
+  {
+    id: 'scam-safe-electricity-bill',
+    title: 'बिजली बिल SMS (नेगेटिव एविडेंस टेस्ट)',
+    titleEn: 'Electricity Bill SMS (Negative Evidence Test)',
+    tag: 'Benign Control (0/100)',
+    tagColor: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+    type: 'SMS' as const,
+    severity: 'Low' as const,
+    text: "Your electricity bill of ₹1,248 is due on 8 October. Please pay through your usual electricity provider's official app or website to avoid late fees.",
+    preview: "Your electricity bill of ₹1,248 is due on 8 October. Please pay through your usual electricity provider's official app...",
+    highlights: 'Official App Advised · 0 Phishing Links'
   }
 ];
 

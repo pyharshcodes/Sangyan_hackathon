@@ -18,6 +18,7 @@ import { NomineeWealthTrackerModal } from './components/NomineeWealthTrackerModa
 import { GeminiApiKeyModal } from './components/GeminiApiKeyModal';
 import { GeminiLiveInsightsCard } from './components/GeminiLiveInsightsCard';
 import { ThreatRadarBar } from './components/ThreatRadarBar';
+import { BharatSimulatorView } from './components/BharatSimulatorView';
 import { playScanSound, playAlertSound, playSafeChime } from './utils/soundEffects';
 import { AnalysisResult, SupportedLanguage } from './types';
 import { runSangyanAnalysis } from './engine/coreAnalyzer';
@@ -26,7 +27,7 @@ import { RotateCcw, Eye, EyeOff, Lock, HeartHandshake } from 'lucide-react';
 import { TRANSLATIONS } from './data/translations';
 
 export function App() {
-  const [currentView, setCurrentView] = useState<'analyze' | 'learn' | 'about'>('analyze');
+  const [currentView, setCurrentView] = useState<'analyze' | 'learn' | 'about' | 'simulator'>('analyze');
   // Default to English as requested: "app english language me open hona chahiye or english me he sab kuch ho"
   const [lang, setLang] = useState<SupportedLanguage>('en');
   const [isLoading, setIsLoading] = useState(false);
@@ -158,7 +159,11 @@ export function App() {
           <div className="space-y-6">
             {/* If no result and not loading: Show Hero & Input Workstation */}
             {!isLoading && !analysisResult && (
-              <InputTabs onAnalyze={handleStartAnalysis} lang={lang} />
+              <InputTabs
+                onAnalyze={handleStartAnalysis}
+                lang={lang}
+                onOpenSimulator={() => setCurrentView('simulator')}
+              />
             )}
 
             {/* If loading: Show 5-stage authentic analysis experience */}
@@ -188,6 +193,13 @@ export function App() {
                     >
                       <HeartHandshake className="w-4 h-4 text-blue-700" />
                       <span>{lang === 'hi' ? 'परिवार नॉमिनी ऑडिट' : 'Nominee Audit'}</span>
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('simulator')}
+                      className="min-h-[44px] inline-flex items-center space-x-1.5 text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-bold px-3 py-2 rounded-2xl transition-all cursor-pointer"
+                      title="Test on Bharat Feature-Phone & WhatsApp Simulator"
+                    >
+                      <span>📱 {lang === 'hi' ? 'भारत सिमुलेटर' : 'Bharat Simulator'}</span>
                     </button>
                     <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-mono text-[11px] font-bold uppercase">
                       {t.inspectedVia} {analysisResult.inputType}
@@ -276,6 +288,18 @@ export function App() {
 
         {/* VIEW 3: ABOUT, METHODOLOGY & GUARDRAILS */}
         {currentView === 'about' && <AboutPrivacyView lang={lang} />}
+
+        {/* VIEW 4: BHARAT FEATURE-PHONE & WHATSAPP SIMULATOR */}
+        {currentView === 'simulator' && (
+          <BharatSimulatorView
+            onAnalyzeSample={(text, type) => {
+              setCurrentView('analyze');
+              handleStartAnalysis(text, type);
+            }}
+            onBackToAnalyze={() => setCurrentView('analyze')}
+            lang={lang}
+          />
+        )}
       </main>
 
       {/* Modal: Incident / Complaint Draft */}

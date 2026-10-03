@@ -4,8 +4,8 @@ import { SupportedLanguage } from '../types';
 import { TRANSLATIONS } from '../data/translations';
 
 interface NavbarProps {
-  currentView: 'analyze' | 'learn' | 'about';
-  setCurrentView: (view: 'analyze' | 'learn' | 'about') => void;
+  currentView: 'analyze' | 'learn' | 'about' | 'simulator';
+  setCurrentView: (view: 'analyze' | 'learn' | 'about' | 'simulator') => void;
   lang: SupportedLanguage;
   setLang: (lang: SupportedLanguage) => void;
   onOpenNomineeTracker?: () => void;
@@ -118,6 +118,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, lan
               >
                 <Info className="w-4 h-4" />
                 <span className="hidden md:inline">{t.guardrailsNav}</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('simulator')}
+                className={`px-3 py-2 rounded-xl transition-all flex items-center space-x-1.5 cursor-pointer ${
+                  currentView === 'simulator'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+                title="Bharat Rural Feature-Phone & WhatsApp Interactive Simulator"
+              >
+                <PhoneCall className="w-4 h-4 text-amber-500" />
+                <span className="hidden sm:inline">{lang === 'hi' ? 'भारत सिमुलेटर' : 'Bharat Simulator'}</span>
+                <span className="sm:hidden">Simulator</span>
+                <span className="hidden xl:inline text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded-full uppercase ml-0.5">
+                  IVR / USSD
+                </span>
               </button>
 
               {onOpenNomineeTracker && (
