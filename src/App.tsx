@@ -36,15 +36,11 @@ export function App() {
   const [showNomineeTracker, setShowNomineeTracker] = useState(false);
   const [showAiConfig, setShowAiConfig] = useState(false);
   const [showRawInput, setShowRawInput] = useState(false);
+  const [currentUploadedImage, setCurrentUploadedImage] = useState<string | undefined>(undefined);
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
   const triggerGeminiEnrichment = (result: AnalysisResult, imagePreviewUrl?: string) => {
-    // Safety Shield: Non-financial content has zero financial risk. Never escalate it.
-    if (result.financialRelevance === 'NO' || result.overallAssessment === 'No Financial Risk') {
-      return;
-    }
-
     setIsGeminiLoading(true);
     const detectedSignals = result.evidenceCards.map((c) => `${c.category}: ${c.evidence}`);
     analyzeWithGemini(result.sanitizedInput, detectedSignals, imagePreviewUrl)
@@ -52,33 +48,34 @@ export function App() {
         if (geminiInsights) {
           setAnalysisResult((prev) => {
             if (!prev) return null;
-            // Ensure non-financial content remains completely safe
-            if (prev.financialRelevance === 'NO' || prev.overallAssessment === 'No Financial Risk') {
-              return prev;
-            }
+
+            // Safety Shield: Non-financial or educational content must NEVER be escalated to scam
+            const isSafeOrNonFinancial =
+              prev.financialRelevance === 'NO' ||
+              prev.overallAssessment === 'No Financial Risk' ||
+              prev.contentClassification === 'Educational';
 
             const isScam =
+              !isSafeOrNonFinancial &&
               (geminiInsights.riskLevel === 'Critical' || geminiInsights.riskLevel === 'High') &&
               prev.financialRelevance === 'YES';
 
-            // Only elevate overallAssessment if Gemini detected critical/high risk on verified financial content
-            const updatedAssessment =
-              isScam
-                ? (geminiInsights.riskLevel || prev.overallAssessment)
-                : prev.overallAssessment;
+            // Only elevate overallAssessment if Gemini detected critical/high risk on verified financial scam content
+            const updatedAssessment = isScam
+              ? (geminiInsights.riskLevel || prev.overallAssessment)
+              : prev.overallAssessment;
 
-            const updatedScore =
-              isScam
-                ? Math.max(prev.heuristicScore, geminiInsights.confidenceScore || 85)
-                : prev.heuristicScore;
+            const updatedScore = isScam
+              ? Math.max(prev.heuristicScore, geminiInsights.confidenceScore || 85)
+              : prev.heuristicScore;
 
             return {
               ...prev,
               geminiInsights,
               overallAssessment: updatedAssessment,
               heuristicScore: updatedScore,
-              hindiExplanation: geminiInsights.aiExplanationHi || prev.hindiExplanation,
-              whyItMattersSummary: geminiInsights.aiAnalysis || prev.whyItMattersSummary
+              hindiExplanation: isSafeOrNonFinancial ? prev.hindiExplanation : (geminiInsights.aiExplanationHi || prev.hindiExplanation),
+              whyItMattersSummary: isSafeOrNonFinancial ? prev.whyItMattersSummary : (geminiInsights.aiAnalysis || prev.whyItMattersSummary)
             };
           });
         }
@@ -97,6 +94,7 @@ export function App() {
     imagePreviewUrl?: string
   ) => {
     setIsLoading(true);
+    setCurrentUploadedImage(imagePreviewUrl);
     playScanSound();
     // 1. Instant execution of deterministic Symbolic AI verification
     const result = runSangyanAnalysis(input, type, imagePreviewUrl);
@@ -119,6 +117,7 @@ export function App() {
 
   const handleReset = () => {
     setAnalysisResult(null);
+    setCurrentUploadedImage(undefined);
     setIsLoading(false);
     setShowComplaintDraft(false);
     setShowRawInput(false);
@@ -300,7 +299,7 @@ export function App() {
           onClose={() => setShowAiConfig(false)}
           onKeySaved={() => {
             if (analysisResult) {
-              triggerGeminiEnrichment(analysisResult);
+              triggerGeminiEnrichment(analysisResult, currentUploadedImage);
             }
           }}
         />

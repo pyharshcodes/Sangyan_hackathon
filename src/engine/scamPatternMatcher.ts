@@ -14,7 +14,30 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     lower.includes('never guarantee') ||
     lower.includes('no genuine market participant or regulator guarantees') ||
     lower.includes('neither sebi nor') ||
-    lower.includes('no guaranteed return');
+    lower.includes('no guaranteed return') ||
+    lower.includes('avoid messages promising guaranteed') ||
+    lower.includes('avoid promising guaranteed') ||
+    lower.includes('avoid guaranteed returns') ||
+    lower.includes('avoid guaranteed') ||
+    lower.includes('avoid messages promising') ||
+    lower.includes('be careful of unsolicited tips') ||
+    lower.includes('be careful of unsolicited') ||
+    lower.includes('beware of guaranteed') ||
+    lower.includes('beware of messages promising') ||
+    lower.includes('never believe guaranteed') ||
+    lower.includes('never trust guaranteed') ||
+    lower.includes('warning against guaranteed') ||
+    lower.includes('alert against guaranteed') ||
+    lower.includes('be a smart investor') ||
+    lower.includes('investor education') ||
+    lower.includes('investor awareness') ||
+    lower.includes('understand. verify. invest wisely') ||
+    lower.includes('consult a sebi registered intermediary') ||
+    lower.includes('for more investor education resources') ||
+    lower.includes('गारंटी से बचें') ||
+    lower.includes('निश्चित रिटर्न से सावधान') ||
+    lower.includes('फर्जी टिप्स से बचें') ||
+    lower.includes('समझें. परखें. सोच-समझकर निवेश करें');
 
   const hasDoubleMoneyPromise =
     lower.includes('डबल') ||
@@ -97,7 +120,16 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
   const isLegitSebiGuidance =
     lower.includes('verify whether the intermediary is registered with sebi') ||
     lower.includes('check registration credentials directly on the official sebi website') ||
-    lower.includes('sebi investor awareness');
+    lower.includes('sebi investor awareness') ||
+    lower.includes('be a smart investor') ||
+    lower.includes('consult a sebi registered intermediary') ||
+    lower.includes('for more investor education resources') ||
+    lower.includes('securities and exchange board of india') ||
+    lower.includes('sebi.gov.in') ||
+    lower.includes('azadi ka amrit mahotsav') ||
+    lower.includes('understand. verify. invest wisely') ||
+    lower.includes('be careful of unsolicited tips') ||
+    lower.includes('भारतीय प्रतिभूति और विनिमय बोर्ड');
 
   if (hasFakeAuthContext && !isLegitSebiGuidance) {
     indicators.push({

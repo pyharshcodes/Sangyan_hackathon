@@ -13,7 +13,8 @@ import {
   Search,
   Sparkles,
   Mic,
-  MicOff
+  MicOff,
+  RefreshCw
 } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { TRANSLATIONS } from '../data/translations';
@@ -234,7 +235,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
     const textToSend =
       ocrText && ocrText.trim().length > 10 && !ocrText.includes('[Scanning image')
         ? ocrText
-        : `Screenshot Analysis: ${selectedImageName || 'uploaded_image'}. Inspect for financial fraud, unverified SEBI claims, guaranteed returns, or phishing.`;
+        : `Screenshot document inspection: ${selectedImageName || 'uploaded_document'}`;
     onAnalyze(textToSend, 'image', imagePreviewUrl || undefined);
   };
 
@@ -558,10 +559,20 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
                 <div className="flex justify-end pt-1">
                   <button
                     onClick={handleImageSubmit}
-                    className="w-full sm:w-auto min-h-[44px] px-8 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all shadow-xs flex items-center justify-center space-x-2 cursor-pointer"
+                    disabled={isOcrScanning}
+                    className="w-full sm:w-auto min-h-[44px] px-8 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white font-bold text-xs sm:text-sm transition-all shadow-xs flex items-center justify-center space-x-2 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    <span>{t.verifyScreenshotButton}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    {isOcrScanning ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                        <span>Extracting Content via OCR...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{t.verifyScreenshotButton}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

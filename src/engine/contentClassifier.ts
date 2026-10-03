@@ -224,9 +224,18 @@ export function classifyDocumentContentType(
     lower.includes('investor awareness') ||
     lower.includes('scheme information document') ||
     (lower.includes('market risks') && lower.includes('carefully before investing')) ||
-    lower.includes('financial literacy');
+    lower.includes('financial literacy') ||
+    lower.includes('be a smart investor') ||
+    lower.includes('investor education') ||
+    lower.includes('invest wisely') ||
+    lower.includes('understand. verify. invest wisely') ||
+    lower.includes('for more investor education resources') ||
+    lower.includes('consult a sebi registered intermediary') ||
+    lower.includes('be careful of unsolicited tips') ||
+    lower.includes('भारतीय प्रतिभूति और विनिमय बोर्ड') ||
+    (lower.includes('securities and exchange board of india') && lower.includes('sebi.gov.in'));
 
-  if (isEducationalContent && !lower.includes('guaranteed 300%') && !lower.includes('300% guaranteed')) {
+  if (isEducationalContent && !lower.includes('guaranteed 300%') && !lower.includes('300% guaranteed') && !lower.includes('vip group') && !lower.includes('paisa double')) {
     return 'INVESTMENT_CONTENT';
   }
 
@@ -235,7 +244,11 @@ export function classifyDocumentContentType(
     lower.includes('never transfer') ||
     lower.includes('do not transfer') ||
     lower.includes('avoid transferring') ||
-    lower.includes('investor awareness');
+    lower.includes('investor awareness') ||
+    lower.includes('be a smart investor') ||
+    lower.includes('investor education') ||
+    lower.includes('be careful of unsolicited tips') ||
+    lower.includes('avoid messages promising');
 
   if (!isEduWarning) {
     const paymentContentKeywords = [
@@ -618,10 +631,18 @@ export function classifyContent(
   const documentContentType = classifyDocumentContentType(text, inputType, fileName);
 
   // 2. Check for Active Deceptive Patterns FIRST
+  const isOfficialEducationalNotice =
+    (lower.includes('be a smart investor') ||
+      lower.includes('investor education') ||
+      (lower.includes('securities and exchange board of india') && lower.includes('sebi.gov.in'))) &&
+    !lower.includes('guaranteed 300%') &&
+    !lower.includes('vip group') &&
+    !lower.includes('paisa double');
+
   const hasCritical = riskIndicators.some(i => i.severity === 'critical');
   const highCount = riskIndicators.filter(i => i.severity === 'high').length;
 
-  if (hasCritical || highCount >= 1 || hasSuspiciousDomain) {
+  if (!isOfficialEducationalNotice && (hasCritical || highCount >= 1 || hasSuspiciousDomain)) {
     return {
       category: 'Suspicious',
       rationale: 'Contains verified deceptive patterns such as unrealistic guaranteed returns, regulatory impersonation, or unverified lookalike portals.',
@@ -683,6 +704,18 @@ export function classifyContent(
     'financial literacy',
     'sebi registered investment adviser',
     'scores portal',
+    'be a smart investor',
+    'invest wisely',
+    'understand. verify. invest wisely',
+    'for more investor education resources',
+    'consult a sebi registered intermediary',
+    'be careful of unsolicited tips',
+    'avoid messages promising guaranteed returns',
+    'securities and exchange board of india',
+    'sebi.gov.in',
+    'azadi ka amrit mahotsav',
+    'भारतीय प्रतिभूति और विनिमय बोर्ड',
+    'समझें. परखें. सोच-समझकर निवेश करें',
     'निवेशक जागरूकता',
     'जोखिम प्रकटीकरण',
     'वित्तीय साक्षरता',
@@ -693,7 +726,9 @@ export function classifyContent(
   ];
 
   const educationalMatchCount = educationalKeywords.filter(k => lower.includes(k)).length;
-  const isEducational = educationalMatchCount >= 1 && riskIndicators.length === 0;
+  const isEducational =
+    (educationalMatchCount >= 1 || isOfficialEducationalNotice) &&
+    (!hasCritical || isOfficialEducationalNotice);
 
   const isAuthenticBankingAlert =
     (lower.includes('otp for login') || lower.includes('your otp for') || lower.includes('one time password') || (lower.includes('credited to your a/c') && lower.includes('salary credit'))) &&

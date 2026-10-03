@@ -23,18 +23,15 @@ export interface GeminiAiResponse {
 }
 
 /**
- * Candidate models supported by Google Gemini API in 2026.
- * Ordered by modern capability, speed, and reliability.
+ * Candidate models supported by Google Gemini API.
+ * Ordered by speed, reliability, and global availability.
  */
 export const CANDIDATE_MODELS = [
-  'gemini-2.5-flash',
+  'gemini-1.5-flash',
   'gemini-2.0-flash',
-  'gemini-2.5-pro',
   'gemini-1.5-pro',
-  'gemini-1.5-pro-latest',
-  'gemini-1.5-flash-latest',
-  'gemini-pro',
-  'gemini-1.5-flash'
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash-8b'
 ];
 
 export function normalizeModelName(rawName: string): string {
@@ -43,12 +40,11 @@ export function normalizeModelName(rawName: string): string {
 
 export function formatDisplayName(rawName: string): string {
   const clean = normalizeModelName(rawName);
-  if (clean.includes('2.5-pro')) return 'Google Gemini 2.5 Pro';
-  if (clean.includes('2.5-flash')) return 'Google Gemini 2.5 Flash';
+  if (clean.includes('2.0-flash-lite')) return 'Google Gemini 2.0 Flash Lite';
   if (clean.includes('2.0-flash')) return 'Google Gemini 2.0 Flash';
   if (clean.includes('1.5-pro')) return 'Google Gemini 1.5 Pro';
+  if (clean.includes('1.5-flash-8b')) return 'Google Gemini 1.5 Flash 8B';
   if (clean.includes('1.5-flash')) return 'Google Gemini 1.5 Flash';
-  if (clean === 'gemini-pro') return 'Google Gemini Pro';
   return `Google Gemini (${clean})`;
 }
 
@@ -164,12 +160,12 @@ export async function resolveBestModel(apiKey: string): Promise<string> {
     return discovered[0];
   }
 
-  return 'gemini-2.5-flash';
+  return 'gemini-1.5-flash';
 }
 
 /**
  * Lightweight ping to verify that the Gemini API Key is valid and active.
- * Probes ListModels first to detect whether user has Pro or Flash, then validates generation.
+ * Directly tests the key against Google Gemini 1.5 Flash / 2.0 Flash with low latency.
  */
 export async function pingGeminiConnection(keyToTest?: string): Promise<{
   success: boolean;
@@ -177,106 +173,84 @@ export async function pingGeminiConnection(keyToTest?: string): Promise<{
   modelUsed?: string;
   message: string;
 }> {
-  const apiKey = keyToTest || getGeminiApiKey();
-  if (!apiKey) {
+  const rawKey = keyToTest || getGeminiApiKey();
+  const apiKey = (rawKey || '').trim().replace(/['"]/g, '');
+  if (!apiKey || apiKey.length < 10) {
     return {
       success: false,
       latencyMs: 0,
-      message: 'No API key provided. Operating in Symbolic Heuristic mode.'
+      message: 'Please paste a valid Google Gemini API key first.'
     };
   }
 
   const startTime = Date.now();
-  try {
-    // 1. Discover models available to this specific key
-    const available = await discoverAvailableModels(apiKey);
+  const candidateModels = [
+    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro',
+    'gemini-2.0-flash-lite'
+  ];
 
-    // Build prioritize candidate list based on discovered models
-    let modelsToTry: string[] = [];
-    if (available.length > 0) {
-      for (const cand of CANDIDATE_MODELS) {
-        if (available.some((a) => a === cand || a.startsWith(cand))) {
-          modelsToTry.push(cand);
-        }
-      }
-      for (const av of available) {
-        if (!modelsToTry.includes(av)) {
-          modelsToTry.push(av);
-        }
-      }
-    } else {
-      modelsToTry = [...CANDIDATE_MODELS];
-    }
+  let lastError = '';
 
-    let lastError = '';
+  for (const model of candidateModels) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    // 2. Cascade test generateContent until the first valid model responds
-    for (const model of modelsToTry) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [{ text: 'Respond with exactly: {"status": "ok", "system": "SANGYAN_KAVACH_READY"}' }]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.1,
-              responseMimeType: 'application/json'
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: 'Respond with exactly: {"status": "ok", "system": "SANGYAN_KAVACH_READY"}' }]
             }
-          })
-        });
-
-        clearTimeout(timeoutId);
-        const latencyMs = Date.now() - startTime;
-
-        if (response.ok) {
-          setStoredGeminiModel(model);
-          const display = formatDisplayName(model);
-          return {
-            success: true,
-            latencyMs,
-            modelUsed: display,
-            message: `${display} Connected! Latency: ${latencyMs}ms`
-          };
-        } else {
-          const errBody = await response.text();
-          // If error is 400 with API_KEY_INVALID, the key itself is wrong
-          if (response.status === 400 && (errBody.includes('API_KEY_INVALID') || errBody.includes('API key not valid'))) {
-            return {
-              success: false,
-              latencyMs,
-              message: 'Invalid Google AI Studio Key. Please verify and re-copy from Google AI Studio.'
-            };
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json'
           }
-          lastError = `(${response.status}): ${errBody.slice(0, 140)}`;
-        }
-      } catch (callErr: any) {
-        lastError = callErr.message || 'Network error';
-      }
-    }
+        })
+      });
 
-    return {
-      success: false,
-      latencyMs: Date.now() - startTime,
-      message: `Model check failed: ${lastError || 'No supported Gemini model answered'}`
-    };
-  } catch (err: any) {
-    return {
-      success: false,
-      latencyMs: Date.now() - startTime,
-      message: err.name === 'AbortError' ? 'Connection timed out (6s)' : (err.message || 'Network error')
-    };
+      clearTimeout(timeoutId);
+      const latencyMs = Date.now() - startTime;
+
+      if (response.ok) {
+        setStoredGeminiModel(model);
+        const display = formatDisplayName(model);
+        return {
+          success: true,
+          latencyMs,
+          modelUsed: display,
+          message: `${display} Connected! Latency: ${latencyMs}ms`
+        };
+      } else {
+        const errBody = await response.text();
+        if (response.status === 400 && (errBody.includes('API_KEY_INVALID') || errBody.includes('API key not valid'))) {
+          return {
+            success: false,
+            latencyMs,
+            message: 'Invalid Google AI Studio Key. Please verify and re-copy from Google AI Studio.'
+          };
+        }
+        lastError = `(${response.status}): ${errBody.slice(0, 100)}`;
+      }
+    } catch (callErr: any) {
+      lastError = callErr.name === 'AbortError' ? 'Connection timed out (6s)' : (callErr.message || 'Network error');
+    }
   }
+
+  return {
+    success: false,
+    latencyMs: Date.now() - startTime,
+    message: `Model check failed: ${lastError || 'No response from Gemini API'}`
+  };
 }
 
 /**
@@ -325,7 +299,30 @@ export function synthesizeOfflineGeminiResponse(
       manipulationTriggers: [],
       regulatoryViolationNotes: 'Non-financial content. Not subject to SEBI regulatory jurisdiction.',
       confidenceScore: 0,
-      modelUsed: 'Google Gemini 2.5 Flash (Edge Guardrail Mode)',
+      modelUsed: 'Google Gemini 1.5 Flash (Edge Guardrail Mode)',
+      riskLevel: 'Low',
+      latencyMs: 120
+    };
+  }
+
+  const isEducationalNotice =
+    lower.includes('be a smart investor') ||
+    lower.includes('investor education') ||
+    lower.includes('investor awareness') ||
+    lower.includes('understand. verify. invest wisely') ||
+    lower.includes('consult a sebi registered intermediary') ||
+    lower.includes('avoid messages promising guaranteed returns') ||
+    lower.includes('भारतीय प्रतिभूति और विनिमय बोर्ड') ||
+    (lower.includes('sebi.gov.in') && lower.includes('securities and exchange board of india'));
+
+  if (isEducationalNotice) {
+    return {
+      aiAnalysis: 'Official SEBI Investor Education & Awareness Advisory. Content confirmed as legitimate regulatory guidance cautioning citizens against unsolicited stock tips and unrealistic return claims.',
+      aiExplanationHi: 'यह सेबी (SEBI) का आधिकारिक निवेशक जागरूकता पोस्टर है। यह नागरिकों को फर्जी टिप्स और धोखाधड़ी से बचने की सही व सुरक्षित सलाह देता है।',
+      manipulationTriggers: [],
+      regulatoryViolationNotes: 'Official SEBI Investor Education Resource (sebi.gov.in).',
+      confidenceScore: 0,
+      modelUsed: 'Google Gemini 1.5 Flash (Edge Guardrail Mode)',
       riskLevel: 'Low',
       latencyMs: 120
     };
@@ -404,11 +401,11 @@ export async function analyzeWithGemini(
     return synthesizeOfflineGeminiResponse(sanitizedText, detectedSignals, imageDataUrl);
   }
 
-  const activeModel = await resolveBestModel(apiKey);
-  const modelsToAttempt = [
-    activeModel,
-    ...CANDIDATE_MODELS.filter((m) => m !== activeModel)
-  ];
+  const cleanKey = apiKey.trim().replace(/['"]/g, '');
+  const storedModel = getStoredGeminiModel();
+  const modelsToAttempt = storedModel
+    ? [storedModel, ...CANDIDATE_MODELS.filter((m) => m !== storedModel)]
+    : CANDIDATE_MODELS;
 
   const prompt = `You are SANGYAN KAVACH AI, an institutional investor safety assistant built under SEBI (Securities and Exchange Board of India) and NSDL guidelines.
 MANDATORY GUARDRAILS:
@@ -425,8 +422,8 @@ DETECTED SIGNALS BY DETERMINISTIC GUARDRAIL ENGINE:
 ${detectedSignals.join(', ')}
 
 EVALUATION RULES:
-- OBJECTIVITY: If the content is an innocent personal message, casual greeting, marksheet, receipt, photo, or non-financial communication, you MUST set "riskLevel": "Low", "confidenceScore": 0, "manipulationTriggers": [], and "regulatoryViolationNotes": "None". DO NOT flag scams where none exist!
-- ONLY flag "Critical" or "High" if there are actual financial scams (Ponzi schemes, guaranteed return claims, Demat KYC phishing, unverified VIP trading tips, advance fee extortion, fake loans, digital arrest, or impersonation of SEBI/RBI).
+- OBJECTIVITY: If the content is an innocent personal message, casual greeting, marksheet, receipt, photo, non-financial communication, or an OFFICIAL REGULATORY INVESTOR AWARENESS POSTER/ADVISORY (such as SEBI "Be a Smart Investor", "Understand. Verify. Invest Wisely", or official educational guidance), you MUST set "riskLevel": "Low", "confidenceScore": 0, "manipulationTriggers": [], and "regulatoryViolationNotes": "None (Legitimate Educational Advisory)". DO NOT flag scams where none exist!
+- ONLY flag "Critical" or "High" if there are actual financial scams (Ponzi schemes, guaranteed return promises, Demat KYC phishing, unverified VIP trading tips, advance fee extortion, fake loans, digital arrest, or impersonation of SEBI/RBI).
 
 Respond ONLY in valid JSON with this exact structure:
 {
@@ -442,24 +439,24 @@ Respond ONLY in valid JSON with this exact structure:
     const startTime = Date.now();
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       // Construct multimodal parts if image data URL is provided
       const parts: any[] = [];
       if (imageDataUrl && imageDataUrl.startsWith('data:image/')) {
-        const matches = imageDataUrl.match(/^data:(image\/[a-zA-Z0-9.+_-]+);base64,(.+)$/);
+        const matches = imageDataUrl.match(/^data:(image\/[a-zA-Z0-9.+_-]+);base64,(.+)$/s);
         if (matches && matches[1] && matches[2]) {
           parts.push({
             inlineData: {
               mimeType: matches[1],
-              data: matches[2]
+              data: matches[2].replace(/\s+/g, '')
             }
           });
         }
       }
       parts.push({ text: prompt });
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -504,22 +501,22 @@ Respond ONLY in valid JSON with this exact structure:
         console.warn('[SANGYAN Kavach] JSON clean parse failed, using robust fallback extraction:', parseErr);
         parsed = {
           aiAnalysis: textResult.replace(/[`{}]/g, '').slice(0, 300),
-          aiExplanationHi: 'जेमिनी ने इस सामग्री में मनोवैज्ञानिक दबाव व अनधिकृत वित्तीय दावों की पुष्टि की है।',
-          manipulationTriggers: ['Psychological Urgency', 'Unverified Financial Claim'],
-          regulatoryViolationNotes: 'SEBI Intermediary Regulations and Investor Safety Advisory.',
-          confidenceScore: 94,
-          riskLevel: 'Critical'
+          aiExplanationHi: 'जेमिनी ने सामग्री का विश्लेषण पूरा किया।',
+          manipulationTriggers: [],
+          regulatoryViolationNotes: 'None',
+          confidenceScore: 0,
+          riskLevel: 'Low'
         };
       }
 
-      const assignedRisk = parsed.riskLevel || (parsed.confidenceScore > 80 ? 'Critical' : 'Needs Verification');
+      const assignedRisk = parsed.riskLevel || (parsed.confidenceScore > 80 ? 'Critical' : parsed.confidenceScore > 0 ? 'Needs Verification' : 'Low');
 
       return {
-        aiAnalysis: parsed.aiAnalysis || 'Deceptive financial manipulation detected by Gemini.',
+        aiAnalysis: parsed.aiAnalysis || 'Analysis complete.',
         aiExplanationHi: parsed.aiExplanationHi || '',
-        manipulationTriggers: parsed.manipulationTriggers || ['Psychological FOMO', 'Unverified Claim'],
-        regulatoryViolationNotes: parsed.regulatoryViolationNotes || 'SEBI Intermediary Regulations.',
-        confidenceScore: parsed.confidenceScore || 94,
+        manipulationTriggers: Array.isArray(parsed.manipulationTriggers) ? parsed.manipulationTriggers : [],
+        regulatoryViolationNotes: parsed.regulatoryViolationNotes || 'None',
+        confidenceScore: typeof parsed.confidenceScore === 'number' ? parsed.confidenceScore : 0,
         modelUsed: displayModel,
         riskLevel: assignedRisk,
         latencyMs

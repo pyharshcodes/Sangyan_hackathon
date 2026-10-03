@@ -250,4 +250,43 @@ Cook until oil separates. Stir in paneer cubes and fresh cream. Simmer for 5 min
     expect(result.overallAssessment).toBe('No Financial Risk');
     expect(result.heuristicScore).toBe(0);
   });
+
+  // Test Case 14: Official SEBI Educational Poster (media_1791007888418.jpg)
+  it('Test Case 14: Official SEBI Educational Poster -> Low Risk / Educational', () => {
+    const text = `भारतीय प्रतिभूति और विनिमय बोर्ड
+Securities and Exchange Board of India
+75 Azadi ka Amrit Mahotsav
+
+Be a Smart Investor
+Understand. Verify. Invest Wisely.
+
+Understand the product
+Know the features, risks, fees and terms before investing.
+
+Verify the information
+Check details from official and trusted sources.
+
+Be careful of unsolicited tips
+Avoid messages promising guaranteed returns or unrealistic profits.
+
+Seek guidance when needed
+Consult a SEBI registered intermediary or a qualified financial advisor.
+
+For more investor education resources, visit
+www.sebi.gov.in`;
+
+    const result = runSangyanAnalysis(text, 'image');
+    console.log('Result for SEBI educational poster:', {
+      overallAssessment: result.overallAssessment,
+      heuristicScore: result.heuristicScore,
+      financialRelevance: result.financialRelevance,
+      category: result.contentClassification,
+      detectedPatterns: result.detectedPatterns.map(p => p.id)
+    });
+    expect(result.overallAssessment).toBe('Low');
+    expect(result.heuristicScore).toBeLessThanOrEqual(10);
+    expect(result.contentClassification).toBe('Educational');
+    expect(result.detectedPatterns).toHaveLength(0);
+    expect(result.complaintDraft).toBeUndefined();
+  });
 });

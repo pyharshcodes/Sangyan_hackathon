@@ -263,6 +263,7 @@ export function runSangyanAnalysis(
     if (classificationReport.category === 'Educational') {
       heuristicScore = 5;
       overallAssessment = 'Low';
+      activeDetectedPatterns = [];
     } else {
       let score = 5;
       const criticalCount = detectedPatterns.filter(p => p.severity === 'critical').length;
