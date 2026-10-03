@@ -1,22 +1,25 @@
-import React, { useState } from 'react';
-import { Send, Phone, Video, MoreVertical, ShieldAlert, CheckCheck, Play, Pause, Volume2, ArrowRight, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  Send,
+  Phone,
+  Video,
+  MoreVertical,
+  ShieldAlert,
+  ShieldCheck,
+  CheckCheck,
+  Play,
+  Pause,
+  Volume2,
+  ArrowRight,
+  AlertTriangle
+} from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { VoiceNarrator } from '../engine/voiceNarrator';
+import { runSangyanAnalysis } from '../engine/coreAnalyzer';
 
 interface WhatsAppBharatSimulatorProps {
   onSelectSampleForAnalysis: (text: string, type: 'text' | 'image' | 'url') => void;
   lang: SupportedLanguage;
-}
-
-interface ChatMessage {
-  id: string;
-  sender: 'user' | 'bot';
-  time: string;
-  text?: string;
-  isVoice?: boolean;
-  voiceDuration?: string;
-  riskBadge?: 'CRITICAL' | 'SAFE' | 'WARNING';
-  actionButtonText?: string;
 }
 
 const SAMPLE_FORWARDS = [
@@ -24,25 +27,31 @@ const SAMPLE_FORWARDS = [
     id: 'fwd-ipo',
     title: '💥 400% Guaranteed SME IPO Group Tip',
     titleHi: '💥 400% गारंटीड SME IPO व्हाट्सएप टिप',
-    text: '🚨 VIP INVESTOR GROUP — SECRET SME IPO TIP: Our analysts confirmed 400% profit potential. Only 20 seats left! Send ₹10,000 to reserve allotment. Guaranteed allocation. Join now: t.me/vip_ipo_group',
-    botReplyHi: 'नमस्ते रमेश जी, यह 100% फर्जी IPO स्कैम है! सेबी के अनुसार कोई भी व्हाट्सएप पर शेयर आवंटन की गारंटी नहीं दे सकता। अपने ₹10,000 किसी को न भेजें!',
-    botReplyEn: 'Hello Ramesh ji, this is a CRITICAL FRAUD ALERT. Guaranteed IPO allotment over WhatsApp is strictly prohibited under SEBI rules. Never transfer funds to private UPI IDs.'
+    text: '🚨 VIP INVESTOR GROUP — SECRET SME IPO TIP: Our analysts confirmed 400% profit potential. Only 20 seats left! Send ₹10,000 to reserve allotment. Guaranteed allocation. Join now: t.me/vip_ipo_group'
   },
   {
     id: 'fwd-kyc',
     title: '⚠️ Fake Demat KYC Suspension SMS',
     titleHi: '⚠️ डीमैट खाता सस्पेंड होने का फर्जी SMS',
-    text: 'URGENT: Your DEMAT account will be suspended today due to incomplete KYC. Verify your PAN and account immediately at: https://demat-kyc-verification.example. Blocked within 2 hours.',
-    botReplyHi: 'चेतावनी: NSDL/CDSL कभी भी व्हाट्सएप या एसएमएस पर ऐसा लिंक नहीं भेजते। यह पासवर्ड और पैन चुराने वाली फिशिंग लिंक है!',
-    botReplyEn: 'WARNING: This is a credential phishing link impersonating depositories. NSDL/CDSL never request credential updates via external URLs.'
+    text: 'URGENT: Your DEMAT account will be suspended today due to incomplete KYC. Verify your PAN and account immediately at: https://demat-kyc-verification.example. Blocked within 2 hours.'
   },
   {
     id: 'fwd-withdraw',
     title: '💸 Fake ₹48,750 Withdrawal Release Fee',
     titleHi: '💸 ₹48,750 विड्रॉल रिलीज फीस फ्रॉड',
-    text: 'Withdrawal Pending: Your investment generated ₹48,750 profit. Pay ₹2,499 regulatory verification fee within 30 minutes to release funds. Contact: support@example-help.com',
-    botReplyHi: 'रमेश जी, यह पोंजी एडवांस फीस फ्रॉड है! अगर आपने ₹2,499 दिए तो वे ₹5,000 और मांगेंगे लेकिन ₹1 भी वापस नहीं मिलेगा!',
-    botReplyEn: 'Advance fee extortion alert: Legitimate brokers deduct statutory charges directly from payouts. Never pay upfront fees to unlock balances.'
+    text: 'Withdrawal Pending: Your investment generated ₹48,750 profit. Pay ₹2,499 regulatory verification fee within 30 minutes to release funds. Contact: support@example-help.com'
+  },
+  {
+    id: 'fwd-safe-bill',
+    title: '🟢 Safe Electricity Bill (Benign Control)',
+    titleHi: '🟢 बिजली बिल (सुरक्षित कंट्रोल)',
+    text: "Your electricity bill of ₹1,248 is due on 8 October. Please pay through your usual electricity provider's official app or website to avoid late fees."
+  },
+  {
+    id: 'fwd-amazon-order',
+    title: '🟢 Amazon Order Delivery Alert',
+    titleHi: '🟢 अमेज़न डिलीवरी नोटिफिकेशन',
+    text: 'Your order from Amazon has been shipped. Order #AMZ45821 is expected to arrive by 5 October. You can track your delivery through the Amazon app.'
   }
 ];
 
@@ -52,12 +61,55 @@ export function WhatsAppBharatSimulator({ onSelectSampleForAnalysis, lang }: Wha
   const [customInput, setCustomInput] = useState('');
   const isHindi = lang === 'hi';
 
+  // Live dynamic prediction using the real SANGYAN evidence-first analysis engine
+  const liveAnalysis = useMemo(() => {
+    return runSangyanAnalysis(selectedSample.text, 'text');
+  }, [selectedSample.text]);
+
+  const isCriticalOrHigh =
+    liveAnalysis.overallAssessment === 'Critical' || liveAnalysis.overallAssessment === 'High';
+  const isSafe =
+    liveAnalysis.overallAssessment === 'Low' || liveAnalysis.overallAssessment === 'No Financial Risk';
+
+  // Compute dynamic explanation based on real engine analysis
+  const computedBotReplyHi = useMemo(() => {
+    if (isSafe) {
+      if (liveAnalysis.financialRelevance === 'NO') {
+        return 'नमस्ते! संज्ञान कवच जांच: यह एक सामान्य गैर-वित्तीय सूचना है (जैसे ई-कॉमर्स या डिलीवरी)। इसमें कोई वित्तीय जोखिम, क्रेडेंशियल चोरी या साइबर फ्रॉड नहीं है। यह पूरी तरह सुरक्षित है।';
+      }
+      return 'नमस्ते! संज्ञान कवच जांच: यह संदेश सुरक्षित प्रतीत होता है। इसमें कोई अनधिकृत भुगतान मांग या क्रेडेंशियल चोरी नहीं पाई गई है। आधिकारिक ऐप से ही लेन-देन करें।';
+    }
+    if (isCriticalOrHigh) {
+      return (
+        liveAnalysis.hindiExplanation ||
+        'चेतावनी: यह संदेश अत्यधिक जोखिम भरा व धोखाधड़ी युक्त है! सेबी नियमों के अनुसार किसी अज्ञात लिंक या निजी यूपीआई पर पैसे न भेजें।'
+      );
+    }
+    return liveAnalysis.hindiExplanation || 'संज्ञान जांच: इस संदेश में संदिग्ध दावे पाए गए हैं। सावधानी बरतें।';
+  }, [liveAnalysis, isSafe, isCriticalOrHigh]);
+
+  const computedBotReplyEn = useMemo(() => {
+    if (isSafe) {
+      if (liveAnalysis.financialRelevance === 'NO') {
+        return 'SANGYAN Kavach Verification: This is a routine, non-financial operational notification (e.g., shipping/delivery). Zero financial deception, phishing vectors, or credential harvesting detected. Completely safe.';
+      }
+      return 'SANGYAN Kavach Verification: Verified benign financial communication. Official channel recommended with zero suspicious redirects or credential demands detected.';
+    }
+    if (isCriticalOrHigh) {
+      return (
+        liveAnalysis.whyItMattersSummary ||
+        'CRITICAL FRAUD ALERT: Detected coercive urgency, impersonation, or unverified investment claims. Never transfer funds or share credentials.'
+      );
+    }
+    return liveAnalysis.whyItMattersSummary || 'Suspicious communication detected. Exercise caution and verify independently.';
+  }, [liveAnalysis, isSafe, isCriticalOrHigh]);
+
   const handleToggleAudio = () => {
     if (isPlayingAudio) {
       VoiceNarrator.stop();
       setIsPlayingAudio(false);
     } else {
-      const speechText = isHindi ? selectedSample.botReplyHi : selectedSample.botReplyEn;
+      const speechText = isHindi ? computedBotReplyHi : computedBotReplyEn;
       const started = VoiceNarrator.speak(speechText, lang, () => {
         setIsPlayingAudio(false);
       });
@@ -72,11 +124,9 @@ export function WhatsAppBharatSimulator({ onSelectSampleForAnalysis, lang }: Wha
     setCustomInput('');
     setSelectedSample({
       id: 'custom-' + Date.now(),
-      title: 'Custom Forwarded Message',
-      titleHi: 'कस्टम फॉरवर्डेड संदेश',
-      text: userMsg,
-      botReplyHi: 'संज्ञान कवच जांच: इस संदेश में अनधिकृत वित्तीय दावों या जोखिम की संभावना हो सकती है। विस्तृत जांच के लिए नीचे दिए गए बटन पर क्लिक करें।',
-      botReplyEn: 'SANGYAN Kavach Alert: Message submitted for verification. Potential unverified market claims detected. Click below to view the official SEBI investigation dossier.'
+      title: 'Custom Message',
+      titleHi: 'कस्टम संदेश',
+      text: userMsg
     });
     setIsPlayingAudio(false);
   };
@@ -96,7 +146,7 @@ export function WhatsAppBharatSimulator({ onSelectSampleForAnalysis, lang }: Wha
           </span>
         </div>
         <span className="text-[10px] bg-emerald-700 px-2 py-0.5 rounded font-mono">
-          Cloud API / Webhook Ready
+          Live Real-Engine Prediction
         </span>
       </div>
 
@@ -124,7 +174,7 @@ export function WhatsAppBharatSimulator({ onSelectSampleForAnalysis, lang }: Wha
       </div>
 
       {/* WhatsApp Simulated Chat Window */}
-      <div className="bg-[#e5ddd5] min-h-[380px] p-3 sm:p-4 flex flex-col justify-between space-y-4 relative">
+      <div className="bg-[#e5ddd5] min-h-[420px] p-3 sm:p-4 flex flex-col justify-between space-y-4 relative">
         {/* Chat Header */}
         <div className="bg-[#075e54] text-white p-3 rounded-2xl flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-3">
@@ -164,21 +214,45 @@ export function WhatsAppBharatSimulator({ onSelectSampleForAnalysis, lang }: Wha
             </div>
           </div>
 
-          {/* SANGYAN Kavach Bot Reply */}
+          {/* SANGYAN Kavach Bot Reply (Real Prediction Result) */}
           <div className="flex justify-start">
             <div className="bg-white rounded-2xl rounded-tl-xs p-3.5 max-w-[90%] sm:max-w-[75%] shadow-xs text-xs space-y-2.5 text-slate-900 border border-slate-100">
-              {/* Threat Alert Tag */}
-              <div className="flex items-center justify-between bg-red-50 border border-red-200 text-red-700 px-2.5 py-1 rounded-lg font-bold text-[11px]">
-                <span className="flex items-center space-x-1">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>🚨 HIGH RISK DETECTED</span>
-                </span>
-                <span className="font-mono text-[10px]">Score: 94/100</span>
-              </div>
+              {/* Dynamic Risk Tag */}
+              {isCriticalOrHigh ? (
+                <div className="flex items-center justify-between bg-rose-50 border border-rose-200 text-rose-800 px-2.5 py-1.5 rounded-xl font-bold text-[11px]">
+                  <span className="flex items-center space-x-1.5">
+                    <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>🚨 {liveAnalysis.overallAssessment.toUpperCase()} RISK FRAUD DETECTED</span>
+                  </span>
+                  <span className="font-mono text-[10px] bg-rose-100 px-2 py-0.5 rounded text-rose-900">
+                    Score: {liveAnalysis.heuristicScore}/100
+                  </span>
+                </div>
+              ) : isSafe ? (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-1.5 rounded-xl font-bold text-[11px]">
+                  <span className="flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>🟢 VERIFIED SAFE / BENIGN</span>
+                  </span>
+                  <span className="font-mono text-[10px] bg-emerald-100 px-2 py-0.5 rounded text-emerald-900">
+                    Score: {liveAnalysis.heuristicScore}/100
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between bg-amber-50 border border-amber-200 text-amber-900 px-2.5 py-1.5 rounded-xl font-bold text-[11px]">
+                  <span className="flex items-center space-x-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>⚠️ SUSPICIOUS / PROCEED WITH CAUTION</span>
+                  </span>
+                  <span className="font-mono text-[10px] bg-amber-100 px-2 py-0.5 rounded text-amber-900">
+                    Score: {liveAnalysis.heuristicScore}/100
+                  </span>
+                </div>
+              )}
 
               {/* Bot Text Message */}
               <p className="text-slate-800 leading-relaxed font-sans">
-                {isHindi ? selectedSample.botReplyHi : selectedSample.botReplyEn}
+                {isHindi ? computedBotReplyHi : computedBotReplyEn}
               </p>
 
               {/* Audio Voice Note Card (Bhashini-style) */}
@@ -229,7 +303,7 @@ export function WhatsAppBharatSimulator({ onSelectSampleForAnalysis, lang }: Wha
             type="text"
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value)}
-            placeholder={isHindi ? 'अपना संदेश यहां टाइप करें या ऊपर का उदाहरण चुनें...' : 'Type or paste any suspicious WhatsApp message to simulate live bot...'}
+            placeholder={isHindi ? 'अपना संदेश यहां टाइप करें या ऊपर का उदाहरण चुनें...' : 'Type or paste any message (e.g. Amazon order or IPO tip)...'}
             className="flex-1 text-xs text-slate-800 bg-transparent px-3 py-1.5 outline-none font-sans"
           />
           <button
