@@ -43,6 +43,11 @@ export function GeminiApiKeyModal({ onClose, onKeySaved }: GeminiApiKeyModalProp
     setIsTesting(true);
     setTestResult(null);
 
+    // Clear any obsolete stored model to force fresh live probe
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.removeItem('sangyan_gemini_active_model');
+    }
+
     const result = await pingGeminiConnection(apiKey.trim());
     setIsTesting(false);
     setTestResult(result);

@@ -30,7 +30,6 @@ export const CANDIDATE_MODELS = [
   'gemini-1.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-pro',
-  'gemini-2.0-flash-lite',
   'gemini-1.5-flash-8b'
 ];
 
@@ -40,7 +39,7 @@ export function normalizeModelName(rawName: string): string {
 
 export function formatDisplayName(rawName: string): string {
   const clean = normalizeModelName(rawName);
-  if (clean.includes('2.0-flash-lite')) return 'Google Gemini 2.0 Flash Lite';
+  if (clean.includes('3-flash')) return 'Google Gemini 3 Flash';
   if (clean.includes('2.0-flash')) return 'Google Gemini 2.0 Flash';
   if (clean.includes('1.5-pro')) return 'Google Gemini 1.5 Pro';
   if (clean.includes('1.5-flash-8b')) return 'Google Gemini 1.5 Flash 8B';
@@ -116,7 +115,7 @@ export function isGeminiAiActive(): boolean {
 export async function discoverAvailableModels(apiKey: string): Promise<string[]> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
       signal: controller.signal
     });
@@ -129,13 +128,21 @@ export async function discoverAvailableModels(apiKey: string): Promise<string[]>
     const available = data.models
       .filter((m: any) => {
         const methods = m.supportedGenerationMethods;
-        return Array.isArray(methods) && methods.includes('generateContent');
+        const name = (m.name || '').toLowerCase();
+        return (
+          Array.isArray(methods) &&
+          methods.includes('generateContent') &&
+          !name.includes('lite') &&
+          !name.includes('deprecated') &&
+          !name.includes('vision') &&
+          !name.includes('embedding') &&
+          !name.includes('aqa')
+        );
       })
       .map((m: any) => normalizeModelName(m.name));
 
     return available;
   } catch (err) {
-    console.warn('[SANGYAN Kavach] Model discovery via ListModels failed or timed out:', err);
     return [];
   }
 }
@@ -145,7 +152,7 @@ export async function discoverAvailableModels(apiKey: string): Promise<string[]>
  */
 export async function resolveBestModel(apiKey: string): Promise<string> {
   const stored = getStoredGeminiModel();
-  if (stored) return stored;
+  if (stored && !stored.includes('lite')) return stored;
 
   const discovered = await discoverAvailableModels(apiKey);
   if (discovered.length > 0) {
@@ -165,7 +172,7 @@ export async function resolveBestModel(apiKey: string): Promise<string> {
 
 /**
  * Lightweight ping to verify that the Gemini API Key is valid and active.
- * Directly tests the key against Google Gemini 1.5 Flash / 2.0 Flash with low latency.
+ * Probes Google Gemini models with minimal overhead and zero downtime.
  */
 export async function pingGeminiConnection(keyToTest?: string): Promise<{
   success: boolean;
@@ -184,16 +191,24 @@ export async function pingGeminiConnection(keyToTest?: string): Promise<{
   }
 
   const startTime = Date.now();
-  const candidateModels = [
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-pro',
-    'gemini-2.0-flash-lite'
-  ];
+
+  // 1. Probe models list from Google API for this key
+  const discovered = await discoverAvailableModels(apiKey);
+
+  // 2. Build ordered priority candidate list
+  const primaryModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash-8b'];
+  const modelsToTest: string[] = [];
+
+  for (const d of discovered) {
+    if (!modelsToTest.includes(d) && !d.includes('lite')) modelsToTest.push(d);
+  }
+  for (const m of primaryModels) {
+    if (!modelsToTest.includes(m)) modelsToTest.push(m);
+  }
 
   let lastError = '';
 
-  for (const model of candidateModels) {
+  for (const model of modelsToTest) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -208,13 +223,9 @@ export async function pingGeminiConnection(keyToTest?: string): Promise<{
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: 'Respond with exactly: {"status": "ok", "system": "SANGYAN_KAVACH_READY"}' }]
+              parts: [{ text: 'Hello' }]
             }
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json'
-          }
+          ]
         })
       });
 
@@ -239,10 +250,10 @@ export async function pingGeminiConnection(keyToTest?: string): Promise<{
             message: 'Invalid Google AI Studio Key. Please verify and re-copy from Google AI Studio.'
           };
         }
-        lastError = `(${response.status}): ${errBody.slice(0, 100)}`;
+        lastError = `(${response.status}) on ${model}: ${errBody.slice(0, 100)}`;
       }
     } catch (callErr: any) {
-      lastError = callErr.name === 'AbortError' ? 'Connection timed out (6s)' : (callErr.message || 'Network error');
+      lastError = callErr.name === 'AbortError' ? `Timeout on ${model} (6s)` : (callErr.message || 'Network error');
     }
   }
 
