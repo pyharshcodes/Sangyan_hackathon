@@ -193,9 +193,15 @@ export const HindiExplanationCard: React.FC<HindiExplanationCardProps> = ({
       VoiceNarrator.stop();
       setIsPlaying(false);
     } else {
-      const success = VoiceNarrator.speak(localizedContent.speech, lang, () => {
-        setIsPlaying(false);
-      });
+      const fallbackText = explanationHi ? `${explanationHi} ${analogyHi || ''}`.trim() : undefined;
+      const success = VoiceNarrator.speak(
+        localizedContent.speech,
+        lang,
+        () => {
+          setIsPlaying(false);
+        },
+        fallbackText
+      );
       if (success) setIsPlaying(true);
     }
   };

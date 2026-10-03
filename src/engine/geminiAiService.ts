@@ -297,7 +297,22 @@ export function synthesizeOfflineGeminiResponse(
   let regulatoryViolationNotes = '';
   let riskLevel: 'Critical' | 'High' | 'Needs Verification' | 'Low' = 'High';
 
-  if (lower.includes('kyc') || lower.includes('block') || lower.includes('demat') || lower.includes('suspend')) {
+  if (
+    lower.includes('डबल') ||
+    lower.includes('दोगुना') ||
+    lower.includes('paisa double') ||
+    lower.includes('double money') ||
+    lower.includes('मांग रहा') ||
+    lower.includes('पैसे मांग') ||
+    (lower.includes('₹') && lower.includes('डबल')) ||
+    (lower.includes('जानता नहीं') && (lower.includes('डबल') || lower.includes('₹') || lower.includes('रुपये')))
+  ) {
+    aiAnalysis = 'Classic Ponzi Scheme & Illegal Deposit Solicitation under BUDS Act 2019. An unregistered stranger is soliciting personal funds under the fraudulent lure of doubling capital. Regulated financial markets never guarantee fixed returns, and accepting or soliciting unregulated deposits is a cognizable criminal offense.';
+    aiExplanationHi = 'यह पोंजी स्कीम और ठगी का सबसे आम तरीका है। कोई अनजान व्यक्ति पैसे डबल करने का लालच देकर रकम मांग रहा है। सेबी और BUDS Act 2019 के अनुसार किसी भी अनजान व्यक्ति को पैसे डबल करने के वादे पर रकम देना पूरी तरह जोखिम भरा और गैर-कानूनी है। पैसे भेजते ही वह आपको ब्लॉक कर देगा।';
+    manipulationTriggers = ['Greed Exploitation (Double Money Bait)', 'Unverified Stranger Solicitation', 'Unregulated Deposit Scheme (BUDS Act)'];
+    regulatoryViolationNotes = 'Violation of Section 3 of Banning of Unregulated Deposit Schemes Act, 2019 (BUDS Act) & SEBI (PFUTP) Regulations, 2003.';
+    riskLevel = 'Critical';
+  } else if (lower.includes('kyc') || lower.includes('block') || lower.includes('demat') || lower.includes('suspend')) {
     aiAnalysis = 'Deceptive credential harvesting vector impersonating official depository/broker communication. Creates artificial panic regarding account freezing to coerce urgent credential entry on an unauthorized phishing destination.';
     aiExplanationHi = 'ठग ब्रोकर के नाम से फर्जी एसएमएस भेजकर 2 घंटे में खाता बंद होने का डर दिखाते हैं ताकि आप घबराकर अपना पैन और पासवर्ड दे दें।';
     manipulationTriggers = ['Coercive Threat of Asset Loss', 'Impersonation of Depository Infrastructure', 'False Regulatory Urgency'];

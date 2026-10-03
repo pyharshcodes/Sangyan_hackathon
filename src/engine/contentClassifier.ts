@@ -224,7 +224,16 @@ export function classifyDocumentContentType(
     lower.includes('fixed monthly return') ||
     lower.includes('double your money') ||
     lower.includes('paisa double') ||
-    lower.includes('forex trading bot')
+    lower.includes('forex trading bot') ||
+    lower.includes('डबल') ||
+    lower.includes('दोगुना') ||
+    lower.includes('दो महीने में डबल') ||
+    lower.includes('पैसे डबल') ||
+    lower.includes('रुपये डबल') ||
+    lower.includes('पैसा डबल') ||
+    lower.includes('रुपया डबल') ||
+    lower.includes('द्वিগুণ') ||
+    lower.includes('দুগুণ')
   ) {
     return 'FINANCIAL_ADVERTISEMENT';
   }
@@ -248,7 +257,17 @@ export function classifyDocumentContentType(
     lower.includes('portfolio auction') ||
     lower.includes('verify your broker credentials') ||
     lower.includes('secret sme ipo tip') ||
-    lower.includes('withdrawal pending')
+    lower.includes('withdrawal pending') ||
+    lower.includes('मांग रहा') ||
+    lower.includes('मांग रहे') ||
+    lower.includes('पैसे मांग') ||
+    lower.includes('रुपये मांग') ||
+    lower.includes('जानता नहीं') ||
+    lower.includes('पहचानता नहीं') ||
+    lower.includes('अनजान व्यक्ति') ||
+    lower.includes('अजनबी') ||
+    lower.includes("don't know him") ||
+    lower.includes('টাকা চাইছে')
   ) {
     return 'INVESTMENT_MESSAGE';
   }
@@ -380,7 +399,27 @@ export function determineFinancialRelevance(
     'task',
     'prepaid',
     'commission',
-    'per like'
+    'per like',
+    'डबल',
+    'दोगुना',
+    'मुनाफा',
+    'मुनाफ़ा',
+    'ब्याज',
+    'पैसे',
+    'पैसा',
+    'रुपये',
+    'रुपया',
+    'मांग',
+    'खाता',
+    'हजार',
+    'लाख',
+    'करोड़',
+    'टাকা',
+    'পয়সা',
+    'লাভ',
+    'দ্বিগুণ',
+    'দুগুণ',
+    'টকা'
   ];
 
   const hasAnyFinancialToken = genericFinancialKeywords.some(k => lower.includes(k));
@@ -407,16 +446,10 @@ export function determineFinancialRelevance(
     };
   }
 
-  // For uploaded images where OCR is pending or placeholder is used:
-  // Treat as UNCERTAIN so multimodal AI or user verification can inspect it
-  if (
-    inputType === 'image' &&
-    (lower === '' ||
-      lower.includes('screenshot analysis') ||
-      lower.includes('visual forensic verification ready') ||
-      lower.includes('[scanning image') ||
-      lower.length < 25)
-  ) {
+  // For uploaded images where OCR is pending, partial, or placeholder:
+  // If not explicitly identified as personal/identity/educational doc, treat as UNCERTAIN
+  // so visual multimodal AI or user caution applies rather than falsely clearing as "No Financial Risk"
+  if (inputType === 'image') {
     return {
       relevance: 'UNCERTAIN',
       rationale: 'Visual image upload pending deep multimodal forensic inspection. Independent visual verification active.',

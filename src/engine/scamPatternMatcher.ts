@@ -16,9 +16,42 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     lower.includes('neither sebi nor') ||
     lower.includes('no guaranteed return');
 
+  const hasDoubleMoneyPromise =
+    lower.includes('डबल') ||
+    lower.includes('दोगुना') ||
+    lower.includes('दो गुना') ||
+    lower.includes('तीन गुना') ||
+    lower.includes('तिगुना') ||
+    lower.includes('3 गुना') ||
+    lower.includes('चार गुना') ||
+    lower.includes('4 गुना') ||
+    lower.includes('दस गुना') ||
+    lower.includes('10 गुना') ||
+    /\d+\s*गुना/.test(lower) ||
+    lower.includes('पैसे डबल') ||
+    lower.includes('रुपये डबल') ||
+    lower.includes('पैसा डबल') ||
+    lower.includes('रुपया डबल') ||
+    lower.includes('डबल हो जाएंगे') ||
+    lower.includes('डबल हो जाएगा') ||
+    lower.includes('डबल मिलेंगे') ||
+    lower.includes('डबल कर') ||
+    lower.includes('double money') ||
+    lower.includes('money double') ||
+    lower.includes('paisa double') ||
+    lower.includes('double ho ja') ||
+    lower.includes('double your money') ||
+    /double\s*in\s*\d+/i.test(lower) ||
+    /\d+x\s*return/i.test(lower) ||
+    lower.includes('द्वিগুণ') ||
+    lower.includes('দুগুণ') ||
+    lower.includes('টাকা দ্বিগুণ') ||
+    lower.includes('টকা দুগুণ');
+
   if (
     !isNegativeGuaranteeContext &&
-    (lower.includes('guaranteed') ||
+    (hasDoubleMoneyPromise ||
+      lower.includes('guaranteed') ||
       lower.includes('guarantee') ||
       lower.includes('100% loss refund') ||
       lower.includes('zero risk') ||
@@ -214,7 +247,7 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     });
   }
 
-  // Pattern 8: Unofficial Payment Method / Personal Transfer
+  // Pattern 8: Unofficial Payment Method / Personal Transfer / Demanding Money
   const isPaymentWarningContext =
     lower.includes('never transfer funds') ||
     lower.includes('never send funds') ||
@@ -223,9 +256,32 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     lower.includes('do not send') ||
     lower.includes('avoid transferring');
 
+  const hasInformalPaymentDemand =
+    lower.includes('मांग रहा') ||
+    lower.includes('मांग रहे') ||
+    lower.includes('मांगता है') ||
+    lower.includes('मांग रहा है') ||
+    lower.includes('पैसे मांग') ||
+    lower.includes('रुपये मांग') ||
+    lower.includes('पैसा मांग') ||
+    lower.includes('रुपया मांग') ||
+    /₹\s*[\d,]+\s*(?:मांग|भेज|दे|डाल)/i.test(lower) ||
+    lower.includes('भेजने को बोल रहा') ||
+    lower.includes('देने को बोल रहा') ||
+    lower.includes('जमा करने को बोल रहा') ||
+    lower.includes('asking for money') ||
+    lower.includes('demanding money') ||
+    lower.includes('asking to send') ||
+    lower.includes('asking to transfer') ||
+    lower.includes('টাকা চাইছে') ||
+    lower.includes('পয়সা চাইছে') ||
+    lower.includes('টাকা দিতে বলছে') ||
+    lower.includes('টকা বিচাৰিছে');
+
   if (
     !isPaymentWarningContext &&
-    (lower.includes('allocation wallet') ||
+    (hasInformalPaymentDemand ||
+      lower.includes('allocation wallet') ||
       lower.includes('secure allocation wallet') ||
       lower.includes('upi id:') ||
       lower.includes('to personal upi') ||
@@ -279,6 +335,54 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
       description: 'Promises payments for simple tasks (liking videos, giving ratings) and traps victims into sending large prepaid deposits to unlock virtual commissions.',
       whyItMatters: 'National Cybercrime Reporting Portal (1930) identifies Task Scams as India\'s fastest growing cyber fraud. Victims receive small initial payouts (₹150-₹500), but are then forced into "Prepaid Merchant Tasks" costing lakhs with zero withdrawal possible.',
       whyItMattersHi: '1930 साइबर हेल्पलाइन के अनुसार यह भारत का सबसे तेज़ी से फैलता स्कैम है। शुरुआत में छोटे पैसे देकर भरोसा जीतते हैं, फिर बड़े प्रीपेड टास्क के नाम पर लाखों लूट लेते हैं।'
+    });
+  }
+
+  // Pattern 10: Unverified Stranger / Social Media Solicitation (BUDS Act 2019 Violation)
+  const isStrangerWarningContext =
+    lower.includes('do not talk to strangers') ||
+    lower.includes('beware of strangers');
+
+  const hasStrangerContext =
+    lower.includes('जानता नहीं') ||
+    lower.includes('पहचानता नहीं') ||
+    lower.includes('जानती नहीं') ||
+    lower.includes('पहचानती नहीं') ||
+    lower.includes('अनजान व्यक्ति') ||
+    lower.includes('अजनबी') ||
+    lower.includes('अज्ञात व्यक्ति') ||
+    lower.includes('अपरिचित व्यक्ति') ||
+    lower.includes('अपरिचित') ||
+    lower.includes("don't know him") ||
+    lower.includes('dont know him') ||
+    lower.includes('do not know him') ||
+    lower.includes("don't know her") ||
+    lower.includes('unknown person') ||
+    lower.includes('stranger') ||
+    lower.includes('unknown contact') ||
+    lower.includes('never met him') ||
+    lower.includes('never met them') ||
+    lower.includes('met on telegram') ||
+    lower.includes('met on whatsapp') ||
+    lower.includes('met on instagram') ||
+    lower.includes('met on facebook') ||
+    lower.includes('met on tinder') ||
+    lower.includes('চিনিনা') ||
+    lower.includes('অপরিচিত ব্যক্তি') ||
+    lower.includes('জানি না') ||
+    lower.includes('চিনি নাপাওঁ') ||
+    lower.includes('অচিনাকি মানুহ');
+
+  if (!isStrangerWarningContext && hasStrangerContext) {
+    indicators.push({
+      id: 'pattern-stranger-solicitation',
+      category: 'Unregistered',
+      severity: 'critical',
+      title: 'Unverified Stranger Solicitation (BUDS Act Violation)',
+      titleHi: 'अनजान व्यक्ति द्वारा निवेश/पैसे की मांग (BUDS Act व सेबी नियमों का उल्लंघन)',
+      description: 'An unknown person or social media stranger is soliciting funds or investment without regulatory credentials.',
+      whyItMatters: 'Section 3 of the Banning of Unregulated Deposit Schemes Act, 2019 (BUDS Act) strictly prohibits any individual or unregistered entity from soliciting deposits or investments. Accepting or asking for money with promised returns without SEBI registration is a cognizable criminal offense.',
+      whyItMattersHi: 'BUDS Act 2019 और सेबी नियमों के अनुसार किसी भी अनजान व्यक्ति द्वारा मुनाफ़े के नाम पर पैसे मांगना गैरकानूनी और संज्ञेय अपराध है। ऐसे लोग पैसे लेकर तुरंत संपर्क बंद कर देते हैं।'
     });
   }
 

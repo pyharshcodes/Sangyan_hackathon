@@ -180,3 +180,43 @@ describe('RED-TEAM AUDIT 8: Expanded SEBI & AMC Directory Verification', () => {
     expect(axisMfCheck.status).toBe('Verified Official');
   });
 });
+
+describe('RED-TEAM AUDIT 9: Vernacular Hindi Double-Money Ponzi & Stranger Solicitation', () => {
+  it('correctly flags user exact query: ₹10,000 मांग रहा है, बोला दो महीने में डबल हो जाएंगे, मैं उसको जानता नहीं हूँ as Critical Risk', () => {
+    const userPrompt = '₹10,000 मांग रहा है, बोला दो महीने में डबल हो जाएंगे, मैं उसको जानता नहीं हूँ।';
+    const result = runSangyanAnalysis(userPrompt, 'text');
+
+    expect(result.overallAssessment).toBe('Critical');
+    expect(result.heuristicScore).toBeGreaterThanOrEqual(80);
+
+    // Verify detected patterns: Guaranteed Return, Suspicious Payment, Stranger Solicitation
+    const patternIds = result.detectedPatterns.map(p => p.id);
+    expect(patternIds).toContain('pattern-guaranteed-return');
+    expect(patternIds).toContain('pattern-suspicious-payment');
+    expect(patternIds).toContain('pattern-stranger-solicitation');
+
+    // Verify extracted claims
+    expect(result.extractedClaims.promisedReturns.length).toBeGreaterThan(0);
+    expect(result.extractedClaims.paymentRequests.length).toBeGreaterThan(0);
+
+    // Verify Evidence Cards
+    const langCard = result.evidenceCards.find(c => c.category === 'Language');
+    expect(langCard?.severity).toBe('danger');
+    expect(langCard?.statusHi).toContain('अवैध निश्चित रिटर्न');
+
+    const paymentCard = result.evidenceCards.find(c => c.category === 'Payment request');
+    expect(paymentCard?.severity).toBe('danger');
+
+    const identityCard = result.evidenceCards.find(c => c.category === 'Identity');
+    expect(identityCard?.severity).toBe('danger');
+    expect(identityCard?.statusHi).toContain('अनजान व्यक्ति');
+  });
+
+  it('flags Bengali and Hinglish double-money promises as High/Critical Risk', () => {
+    const hinglishPrompt = 'Bhai keh raha hai 50000 de do, 1 month me paisa double ho jayega, direct upi pe bhejo.';
+    const result = runSangyanAnalysis(hinglishPrompt, 'text');
+    expect(['Critical', 'High']).toContain(result.overallAssessment);
+    expect(result.heuristicScore).toBeGreaterThanOrEqual(70);
+    expect(result.detectedPatterns.some(p => p.id === 'pattern-guaranteed-return')).toBe(true);
+  });
+});

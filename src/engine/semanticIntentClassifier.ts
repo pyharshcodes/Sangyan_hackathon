@@ -67,7 +67,28 @@ const SEBI_ENFORCEMENT_ARCHETYPES: ArchetypeDefinition[] = [
     modusOperandi: 'Soliciting public funds with promises of 30-300% monthly/daily returns without registering as a Collective Investment Scheme or Portfolio Manager under SEBI norms.',
     modusOperandiHi: 'बिना सेबी रजिस्ट्रेशन के जनता से पैसे जमा कराना और 30% से 300% तक निश्चित मुनाफे का झूठा वादा करना (BUDS Act 2019 के तहत गैरकानूनी)।',
     behaviouralTriggers: ['Greed Exploitation', 'Risk Negation', 'Social Proof Bait'],
-    semanticKeywords: ['guaranteed return', 'fixed profit', 'zero risk', 'double your money', 'daily roi', '100% safe', 'risk free investment', 'assured payout', 'capital guaranteed']
+    semanticKeywords: [
+      'guaranteed return',
+      'fixed profit',
+      'zero risk',
+      'double your money',
+      'daily roi',
+      '100% safe',
+      'risk free investment',
+      'assured payout',
+      'capital guaranteed',
+      'डबल',
+      'दोगुना',
+      'दो महीने में डबल',
+      'पैसे डबल',
+      'मांग रहा',
+      'मांग रहा है',
+      'मुनाफा',
+      'paisa double',
+      'double ho ja',
+      'টাকা দ্বিগুণ',
+      'টকা দুগুণ'
+    ]
   },
   {
     id: 'SEBI-ENF-2024-WITHDRAWAL',
@@ -121,7 +142,7 @@ const SEBI_ENFORCEMENT_ARCHETYPES: ArchetypeDefinition[] = [
 function tokenizeText(text: string): string[] {
   return text
     .toLowerCase()
-    .replace(/[^\w\s%₹]/g, ' ')
+    .replace(/[^\w\s%₹\u0900-\u097F\u0980-\u09FF]/gu, ' ')
     .split(/\s+/)
     .filter(token => token.length > 2);
 }

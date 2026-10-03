@@ -38,7 +38,6 @@ export function App() {
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
   const triggerGeminiEnrichment = (result: AnalysisResult, imagePreviewUrl?: string) => {
-    if (!isGeminiAiActive()) return;
     setIsGeminiLoading(true);
     const detectedSignals = result.evidenceCards.map((c) => `${c.category}: ${c.evidence}`);
     analyzeWithGemini(result.sanitizedInput, detectedSignals, imagePreviewUrl)
@@ -51,14 +50,14 @@ export function App() {
               geminiInsights.riskLevel === 'High' ||
               (geminiInsights.manipulationTriggers && geminiInsights.manipulationTriggers.length > 0);
 
-            // If it was an image and Gemini detected high risk, elevate the overallAssessment
+            // Elevate overallAssessment if Gemini detected high/critical risk
             const updatedAssessment =
-              prev.inputType === 'image' && isScam
+              isScam && (geminiInsights.riskLevel === 'Critical' || geminiInsights.riskLevel === 'High')
                 ? (geminiInsights.riskLevel || 'Critical')
                 : prev.overallAssessment;
 
             const updatedScore =
-              prev.inputType === 'image' && isScam
+              isScam
                 ? Math.max(prev.heuristicScore, geminiInsights.confidenceScore || 92)
                 : prev.heuristicScore;
 

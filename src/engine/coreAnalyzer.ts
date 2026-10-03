@@ -147,9 +147,14 @@ export function runSangyanAnalysis(
   const regMatches = rawInput.match(/\b(INA|INH|INZ|INP|INM|IN-DP|INR|INF)[0-9A-Z]{6,12}\b/gi) || [];
   extractedClaims.registrationIds = Array.from(new Set(regMatches));
 
-  // Extract potential returns (e.g. 300% profit, 40% monthly, 5% daily)
+  // Extract potential returns (e.g. 300% profit, 40% monthly, 5% daily, double money, 2x)
   const returnMatches = rawInput.match(/\b\d{1,4}%\s*(profit|return|interest|gain|monthly|daily)?/gi) || [];
-  extractedClaims.promisedReturns = Array.from(new Set(returnMatches));
+  const vernacularReturnMatches = rawInput.match(/(?:दो|तीन|चार|पांच|दस|\d+)?\s*(?:महीने|दिन|हफ्ते|साल)?\s*(?:में)?\s*(?:डबल|दोगुना|दो\s*गुना|\d+\s*गुना|ट्रिपल|पैसे\s*डबल|रुपये\s*डबल|पैसा\s*डबल|double\s*money|paisa\s*double|double\s*in\s*\d+|2x\s*return|দুগুণ|দ্বিগুণ)/gi) || [];
+  extractedClaims.promisedReturns = Array.from(new Set([...returnMatches, ...vernacularReturnMatches]));
+
+  if (vernacularReturnMatches.length > 0) {
+    extractedClaims.financialClaims.push(...vernacularReturnMatches.map(m => `Promised Return: ${m.trim()}`));
+  }
 
   // Extract persons/organizations
   if (/prof\.\s*[a-z]+/i.test(rawInput)) {
@@ -164,15 +169,21 @@ export function runSangyanAnalysis(
     const brandMatches = rawInput.match(/(zerodha|groww|angel\s*one|upstox|nsdl|sebi)/gi) || [];
     extractedClaims.organizations.push(...Array.from(new Set(brandMatches.map(b => b.toUpperCase()))));
   }
+  if (/जानता नहीं|पहचानता नहीं|अनजान व्यक्ति|अजनबी|don't know him|dont know him|stranger/i.test(rawInput)) {
+    extractedClaims.persons.push('Unverified Stranger / Unknown Individual');
+  }
 
   // Extract urgency language
   const urgencyKeywords = ['within 2 hours', 'immediately', 'only 3 slots', 'only 2 slots', 'urgent alert', 'hurry'];
   extractedClaims.urgencyLanguage = urgencyKeywords.filter(k => text.toLowerCase().includes(k));
 
   // Extract payment requests
-  if (text.includes('UPI') || text.includes('NEFT') || text.includes('₹')) {
+  if (text.includes('UPI') || text.includes('NEFT') || text.includes('₹') || /मांग|transfer|send|pay|টাকা/i.test(text)) {
     const amountMatches = rawInput.match(/₹\s*[\d,]+/g) || [];
-    extractedClaims.paymentRequests = amountMatches;
+    extractedClaims.paymentRequests = [...amountMatches];
+    if (/मांग\s*रहा|मांग\s*रहे|पैसे\s*मांग|रुपये\s*मांग|asking for money|টাকা চাইছে/i.test(rawInput)) {
+      extractedClaims.paymentRequests.push('पैसा/रुपये मांगने का संदेश (Informal Cash/Transfer Demand)');
+    }
     if (sanitization.redactedCount.upiIds > 0) {
       extractedClaims.paymentRequests.push('Direct UPI Transfer (Address Redacted for Safety)');
     }
@@ -268,6 +279,19 @@ export function runSangyanAnalysis(
       if (classificationReport.category === 'Promotional') {
         heuristicScore = Math.min(Math.max(score, 25), 50);
         overallAssessment = 'Moderate';
+      } else if (classificationReport.category === 'Insufficient evidence') {
+        if (criticalCount >= 1) {
+          heuristicScore = Math.min(Math.max(score, 82), 96);
+          overallAssessment = 'Critical';
+        } else if (highCount >= 1 || extractedClaims.paymentRequests.length > 0) {
+          heuristicScore = Math.min(Math.max(score, 65), 90);
+          overallAssessment = 'High';
+        } else {
+          heuristicScore = 35;
+          overallAssessment = 'Needs Verification';
+        }
+        heuristicScoreDisclaimer =
+          'Unverified financial communication with insufficient evidence. Independent regulatory verification on sebi.gov.in is strongly recommended.';
       } else {
         heuristicScore = Math.min(Math.max(score, 5), 96);
         if (heuristicScore >= 80) {
@@ -675,10 +699,11 @@ export function runSangyanAnalysis(
     ];
   } else {
     // Financially relevant or uncertain content
-    const hasIdentityDiscrepancy = entityVerifications.some(
-      v => v.status === 'Unverified / Discrepancy' || v.status === 'Could Not Verify'
-    );
-    const hasIdentityVerified = entityVerifications.some(v => v.status === 'Verified Official');
+    const hasStrangerPattern = activeDetectedPatterns.some(p => p.id === 'pattern-stranger-solicitation');
+    const hasIdentityDiscrepancy =
+      entityVerifications.some(v => v.status === 'Unverified / Discrepancy' || v.status === 'Could Not Verify') ||
+      hasStrangerPattern;
+    const hasIdentityVerified = entityVerifications.some(v => v.status === 'Verified Official') && !hasStrangerPattern;
     const hasSuspiciousUrl = domainAnalyses.some(d => d.isLookalike || d.suspiciousTld);
     const hasVerifiedUrl = domainAnalyses.some(d => d.isOfficialRegistered);
     const hasGuaranteedLanguage = activeDetectedPatterns.some(p => p.category === 'Guarantee');
@@ -691,31 +716,40 @@ export function runSangyanAnalysis(
         id: 'card-identity',
         category: 'Identity',
         categoryHi: 'पहचान व सेबी पंजीकरण',
-        status: hasIdentityDiscrepancy
+        status: hasStrangerPattern
+          ? 'Unverified Discrepancy'
+          : hasIdentityDiscrepancy
           ? 'Unverified Discrepancy'
           : hasIdentityVerified
           ? 'Verified Official'
           : 'Normal / Clear',
-        statusHi: hasIdentityDiscrepancy
+        statusHi: hasStrangerPattern
+          ? 'अपुष्ट / अनजान व्यक्ति (Unverified Stranger)'
+          : hasIdentityDiscrepancy
           ? 'अपुष्ट या संदिग्ध पहचान'
           : hasIdentityVerified
           ? 'सेबी रजिस्टर से सत्यापित'
           : 'सामान्य / कोई दावा नहीं',
-        severity: hasIdentityDiscrepancy ? 'danger' : hasIdentityVerified ? 'safe' : 'neutral',
-        explanation: hasIdentityDiscrepancy
+        severity: hasStrangerPattern || hasIdentityDiscrepancy ? 'danger' : hasIdentityVerified ? 'safe' : 'neutral',
+        explanation: hasStrangerPattern
+          ? 'Sender is an unverified individual or social media stranger soliciting funds, in direct violation of the BUDS Act 2019.'
+          : hasIdentityDiscrepancy
           ? 'Sender claims registration or affiliation that could not be corroborated in official SEBI directories.'
           : hasIdentityVerified
           ? 'Entity identity corroborated against official regulatory directories.'
           : 'No specific regulatory intermediary claims identified in submitted text.',
-        explanationHi: hasIdentityDiscrepancy
+        explanationHi: hasStrangerPattern
+          ? 'किसी अनजान व्यक्ति द्वारा मुनाफ़े के वादे पर पैसे मांगना BUDS Act 2019 के तहत गैरकानूनी है।'
+          : hasIdentityDiscrepancy
           ? 'दावा किया गया रजिस्ट्रेशन नंबर सेबी के आधिकारिक रिकॉर्ड में नहीं मिला।'
           : hasIdentityVerified
           ? 'पहचान आधिकारिक सेबी मास्टर रिकॉर्ड से मेल खाती है।'
           : 'संदेश में किसी लाइसेंस का दावा नहीं किया गया है।',
-        evidence:
-          extractedClaims.registrationIds.length > 0
-            ? `Claimed Reg IDs: ${extractedClaims.registrationIds.join(', ')}`
-            : 'No specific registration number claimed.'
+        evidence: hasStrangerPattern
+          ? 'Unverified stranger solicitation detected (अनजान व्यक्ति द्वारा पैसे की मांग)'
+          : extractedClaims.registrationIds.length > 0
+          ? `Claimed Reg IDs: ${extractedClaims.registrationIds.join(', ')}`
+          : 'No specific registration number claimed.'
       },
       {
         id: 'card-url',

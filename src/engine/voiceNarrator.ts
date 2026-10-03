@@ -25,7 +25,12 @@ export class VoiceNarrator {
     return typeof window !== 'undefined' && 'speechSynthesis' in window;
   }
 
-  public static speak(text: string, lang: SupportedLanguage = 'en', onEnd?: () => void): boolean {
+  public static speak(
+    text: string,
+    lang: SupportedLanguage = 'en',
+    onEnd?: () => void,
+    fallbackTextHi?: string
+  ): boolean {
     if (!this.synth) return false;
 
     // Cancel any ongoing speech
@@ -40,6 +45,7 @@ export class VoiceNarrator {
     // 2. Find best matching voice for the target language
     let matchedVoice: SpeechSynthesisVoice | undefined;
     let bcpCode = 'en-IN';
+    let hasNativeVoice = false;
 
     if (lang === 'hi') {
       matchedVoice = voices.find(v => {
@@ -47,28 +53,37 @@ export class VoiceNarrator {
         const n = v.name.toLowerCase();
         return c.startsWith('hi') || n.includes('hindi') || n.includes('swara') || n.includes('madhur');
       });
-      bcpCode = 'hi-IN';
+      if (matchedVoice) {
+        bcpCode = 'hi-IN';
+        hasNativeVoice = true;
+      }
     } else if (lang === 'bn') {
       matchedVoice = voices.find(v => {
         const c = v.lang.toLowerCase();
         const n = v.name.toLowerCase();
         return c.startsWith('bn') || n.includes('bengali') || n.includes('bangla') || n.includes('tapan');
       });
-      bcpCode = 'bn-IN';
+      if (matchedVoice) {
+        bcpCode = matchedVoice.lang;
+        hasNativeVoice = true;
+      }
     } else if (lang === 'as') {
       matchedVoice = voices.find(v => {
         const c = v.lang.toLowerCase();
         const n = v.name.toLowerCase();
-        return c.startsWith('as') || n.includes('assamese') || c.startsWith('bn') || n.includes('bengali');
+        return c.startsWith('as') || n.includes('assamese');
       });
-      bcpCode = 'as-IN';
+      if (matchedVoice) {
+        bcpCode = matchedVoice.lang;
+        hasNativeVoice = true;
+      }
     }
 
     // 3. CRITICAL BHARAT VOICE FALLBACK:
     // Windows/Linux desktop browsers rarely have native Bengali or Assamese TTS voice packs installed by default.
     // If the exact voice is missing, fallback to Indian Hindi (hi-IN) or Indian English (en-IN).
-    // MUST set utterance.lang to the fallback voice's actual language to prevent Chromium from aborting with 'language-unavailable'!
-    if (!matchedVoice) {
+    let textToSpeak = text;
+    if (!hasNativeVoice) {
       matchedVoice = voices.find(v => {
         const c = v.lang.toLowerCase();
         const n = v.name.toLowerCase();
@@ -81,12 +96,14 @@ export class VoiceNarrator {
 
       if (matchedVoice) {
         bcpCode = matchedVoice.lang;
+        // If falling back from Bengali/Assamese to a Hindi voice, speak the Hindi fallback text so voice engine articulates words instead of failing on unsupported Unicode
+        if ((lang === 'bn' || lang === 'as') && fallbackTextHi) {
+          textToSpeak = fallbackTextHi;
+        }
       }
-    } else {
-      bcpCode = matchedVoice.lang;
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.lang = bcpCode;
     utterance.rate = 0.92; // Calm, respectful pacing for Bharat investors
     utterance.pitch = 1.0;
