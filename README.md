@@ -18,7 +18,7 @@
 | Resource | Description | Link |
 | :--- | :--- | :--- |
 | 🌐 **Live Web Application** | Deployed on Vercel Global Edge CDN | [**sangyan-hackathon.vercel.app**](https://sangyan-hackathon.vercel.app/) |
-| 📑 **Official Pitch Deck (PDF)** | 10-Slide Presentation Deck with Diagrams & Math | [**Download Pitch Deck PDF**](./docs/SANGYAN_KAVACH_OFFICIAL_PITCH_DECK.pdf) |
+| 📑 **Official Pitch Deck (PDF & Web)** | 10-Slide Presentation Deck with Diagrams & Math | [**Download PDF**](./docs/SANGYAN_KAVACH_OFFICIAL_PITCH_DECK.pdf) · [**Read Online (MD)**](./docs/SANGYAN_KAVACH_OFFICIAL_PITCH_DECK.md) |
 | 🛡️ **Application Security Architecture** | Threat Model, SSRF Filters, Prompt Injection Guard | [**SECURITY.md**](./SECURITY.md) |
 | 🧪 **Benchmark Evaluation Suite** | 465-Sample Multi-Modal Test Matrix | [`src/engine/__tests__/productionEvaluationSuite.test.ts`](./src/engine/__tests__/productionEvaluationSuite.test.ts) |
 
@@ -272,7 +272,8 @@ npm run preview
 ```
 Sangyan_Hackathon/
 ├── docs/
-│   └── SANGYAN_KAVACH_OFFICIAL_PITCH_DECK.pdf    # Official 10-slide Jury Presentation PDF
+│   ├── SANGYAN_KAVACH_OFFICIAL_PITCH_DECK.pdf    # Official 10-slide Jury Presentation PDF
+│   └── SANGYAN_KAVACH_OFFICIAL_PITCH_DECK.md     # Web-readable Pitch Deck Companion
 ├── public/                                       # Static assets and brand logos
 ├── src/
 │   ├── components/                               # Modular React UI components
