@@ -18,8 +18,8 @@ export const AboutPrivacyView: React.FC<AboutPrivacyViewProps> = ({ lang }) => {
 
   const headerSub =
     lang === 'hi'
-      ? 'संज्ञान कवच को भारतीय प्रतिभूति और विनिमय बोर्ड (SEBI), NSDL और IIT (BHU) वाराणसी के हैकथॉन दिशा-निर्देशों के 100% अनुपालन के तहत बनाया गया है।'
-      : 'SANGYAN KAVACH is built strictly in conformance with the public-good charter of the SEBI × NSDL × IIT (BHU) Investor Resilience Hackathon.';
+      ? 'संज्ञान कवच को भारतीय प्रतिभूति और विनिमय बोर्ड (SEBI), NSDL और IIT (BHU) वाराणसी के निवेशक सुरक्षा ढांचे के पूर्ण अनुपालन के तहत विकसित किया गया है।'
+      : 'SANGYAN KAVACH is built strictly in conformance with the public-good investor resilience framework developed with SEBI, NSDL & IIT (BHU).';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

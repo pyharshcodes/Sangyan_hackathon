@@ -124,11 +124,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, lan
                 <button
                   onClick={onOpenNomineeTracker}
                   className="px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5 bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100 font-bold text-xs shadow-2xs cursor-pointer"
-                  title="Open Family Demat Nominee & Unclaimed Asset Audit (Track B)"
+                  title="Open Family Demat Nominee & Unclaimed Asset Audit"
                 >
                   <HeartHandshake className="w-3.5 h-3.5 text-blue-700" />
                   <span className="hidden lg:inline">Nominee Audit</span>
-                  <span className="lg:hidden">Track B</span>
+                  <span className="lg:hidden">Nominee</span>
                 </button>
               )}
 
@@ -143,18 +143,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setCurrentView, lan
                   <span className="lg:hidden">AI</span>
                 </button>
               )}
-
-              <a
-                href="/presentation.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1.5 rounded-xl transition-all flex items-center space-x-1.5 bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 font-bold text-xs shadow-2xs"
-                title="Open Official 10-Slide Jury Presentation Deck"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="hidden sm:inline">Jury Deck</span>
-                <span className="sm:hidden">Deck</span>
-              </a>
             </nav>
 
             {/* Multilingual Selector: English, Hindi, Bengali, Assamese */}

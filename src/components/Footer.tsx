@@ -129,13 +129,13 @@ export const Footer: React.FC<FooterProps> = ({ lang }) => {
             </div>
           </div>
 
-          {/* Col 4: Hackathon Attribution */}
+          {/* Col 4: Public Safety Charter */}
           <div className="space-y-2">
             <h4 className="text-white font-semibold text-xs uppercase tracking-wider">
-              Hackathon Charter
+              Public Safety Charter
             </h4>
             <div className="text-[11px] space-y-1 text-slate-400 leading-normal">
-              <p className="font-medium text-slate-300">SANGYAN Investor Resilience Hackathon</p>
+              <p className="font-medium text-slate-300">SANGYAN Investor Resilience Initiative</p>
               <p>Science & Technology Council, IIT (BHU) Varanasi</p>
               <p className="text-slate-500">In collaboration with SEBI & NSDL</p>
               <div className="pt-2 text-[10px] text-slate-500">

@@ -26,7 +26,6 @@ import { extractTextFromImage } from '../engine/ocrService';
 import { WhatsAppBharatSimulator } from './WhatsAppBharatSimulator';
 import { FeaturePhoneIvrSimulator } from './FeaturePhoneIvrSimulator';
 import { CommunityThreatLedger } from './CommunityThreatLedger';
-import { TrendingScamsShowcase } from './TrendingScamsShowcase';
 import { playScanSound } from '../utils/soundEffects';
 
 interface InputTabsProps {
@@ -407,22 +406,6 @@ No investment claims or return promises.`;
         </div>
       </div>
 
-      {/* VIRAL INDIAN SCAMS INTERACTIVE SHOWCASE - Realistic 1-Click WhatsApp/Telegram Tests */}
-      <TrendingScamsShowcase
-        onSelectScam={(text, type) => {
-          playScanSound();
-          if (type === 'text') {
-            setTextContent(text);
-            setActiveTab('text');
-          } else if (type === 'url') {
-            setUrlContent(text);
-            setActiveTab('url');
-          }
-          onAnalyze(text, type);
-        }}
-        lang={lang}
-      />
-
       {/* CHANNEL DELIVERY SELECTOR (Bharat-First Delivery Mode - Flaw 5 Solution) */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-2xs">
         <div className="flex items-center space-x-2 text-xs font-bold text-slate-700 ml-1">
@@ -712,7 +695,7 @@ No investment claims or return promises.`;
       )}
 
       {/* ============================================================== */}
-      {/* OFFICIAL JURY TEST SCENARIOS - 1-Click Evaluation               */}
+      {/* COMMON VERIFICATION SAMPLES - Quick Citizen Reference           */}
       {/* ============================================================== */}
       <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-3xl p-5 sm:p-6 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
@@ -744,7 +727,7 @@ No investment claims or return promises.`;
                   <span className="truncate">{getPresetTitle(preset)}</span>
                   {isControl && (
                     <span className="text-[9px] uppercase font-bold bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded shrink-0 ml-1">
-                      Control
+                      Legitimate
                     </span>
                   )}
                 </div>
