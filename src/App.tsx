@@ -40,6 +40,11 @@ export function App() {
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
   const triggerGeminiEnrichment = (result: AnalysisResult, imagePreviewUrl?: string) => {
+    // Safety Shield: Non-financial content has zero financial risk. Never escalate it.
+    if (result.financialRelevance === 'NO' || result.overallAssessment === 'No Financial Risk') {
+      return;
+    }
+
     setIsGeminiLoading(true);
     const detectedSignals = result.evidenceCards.map((c) => `${c.category}: ${c.evidence}`);
     analyzeWithGemini(result.sanitizedInput, detectedSignals, imagePreviewUrl)
@@ -47,20 +52,24 @@ export function App() {
         if (geminiInsights) {
           setAnalysisResult((prev) => {
             if (!prev) return null;
-            const isScam =
-              geminiInsights.riskLevel === 'Critical' ||
-              geminiInsights.riskLevel === 'High' ||
-              (geminiInsights.manipulationTriggers && geminiInsights.manipulationTriggers.length > 0);
+            // Ensure non-financial content remains completely safe
+            if (prev.financialRelevance === 'NO' || prev.overallAssessment === 'No Financial Risk') {
+              return prev;
+            }
 
-            // Elevate overallAssessment if Gemini detected high/critical risk
+            const isScam =
+              (geminiInsights.riskLevel === 'Critical' || geminiInsights.riskLevel === 'High') &&
+              prev.financialRelevance === 'YES';
+
+            // Only elevate overallAssessment if Gemini detected critical/high risk on verified financial content
             const updatedAssessment =
-              isScam && (geminiInsights.riskLevel === 'Critical' || geminiInsights.riskLevel === 'High')
-                ? (geminiInsights.riskLevel || 'Critical')
+              isScam
+                ? (geminiInsights.riskLevel || prev.overallAssessment)
                 : prev.overallAssessment;
 
             const updatedScore =
               isScam
-                ? Math.max(prev.heuristicScore, geminiInsights.confidenceScore || 92)
+                ? Math.max(prev.heuristicScore, geminiInsights.confidenceScore || 85)
                 : prev.heuristicScore;
 
             return {

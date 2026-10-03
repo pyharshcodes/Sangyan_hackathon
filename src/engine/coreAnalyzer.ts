@@ -429,8 +429,15 @@ export function runSangyanAnalysis(
         'यह सामान्य बिजली या उपयोगिता बिल का आधिकारिक संदेश है। इसमें अधिकृत भुगतान माध्यमों (BBPS) का उल्लेख है।';
       hindiExplanation =
         'यह आपका नियमित उपयोगिता बिल है। इसमें कोई फर्जी पोंजी स्कीम या साइबर ठगी नहीं है। हमेशा केवल आधिकारिक बिजली विभाग के पोर्टल या BBPS से ही भुगतान करें।';
+    } else if (classificationReport.documentContentType === 'NON_FINANCIAL_TEXT') {
+      whyItMattersSummary =
+        'This is a routine personal message or casual greeting. It contains zero financial claims, investment solicitations, or fraudulent schemes.';
+      whyItMattersSummaryHi =
+        'यह एक सामान्य व्यक्तिगत बातचीत या संदेश है। इसमें किसी भी तरह के निवेश, शेयर या वित्तीय धोखाधड़ी का कोई खतरा नहीं है।';
+      hindiExplanation =
+        'यह सामान्य बातचीत का संदेश है। संज्ञान कवच केवल वित्तीय और निवेश संबंधी धोखाधड़ी (जैसे पोंजी स्कीम, फर्जी शेयर टिप्स, डिजिटल अरेस्ट, फिशिंग) की जांच करता है। इसमें कोई आर्थिक जोखिम नहीं है।';
       hindiAnalogy =
-        'जैसे घर का बिजली बिल आधिकारिक माध्यम से भरा जाता है, वैसे ही यह सामान्य बिल सूचना है।';
+        'जैसे दोस्तों और परिचितों के बीच सामान्य बातचीत में कोई धोखाधड़ी नहीं होती, वैसे ही यह पूरी तरह सुरक्षित है।';
     } else {
       whyItMattersSummary =
         'The inspected content does not contain any financial, investment, or market-related claims. No financial risk is present.';

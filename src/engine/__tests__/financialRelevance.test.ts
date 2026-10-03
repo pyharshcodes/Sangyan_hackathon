@@ -202,18 +202,52 @@ Saute until golden brown. Add pureed tomatoes, chili powder, and garam masala.
 Cook until oil separates. Stir in paneer cubes and fresh cream. Simmer for 5 minutes.`;
 
     const docType = classifyDocumentContentType(text, 'image', 'recipe_notes.jpg');
-    expect(docType).toBe('UNKNOWN');
+    expect(docType).toBe('NON_FINANCIAL_TEXT');
 
     const relevance = determineFinancialRelevance(docType, text);
     expect(relevance.relevance).toBe('NO');
 
     const result = runSangyanAnalysis(text, 'image');
-    expect(result.documentContentType).toBe('UNKNOWN');
+    expect(result.documentContentType).toBe('NON_FINANCIAL_TEXT');
     expect(result.financialRelevance).toBe('NO');
     expect(result.overallAssessment).toBe('No Financial Risk');
     expect(result.heuristicScore).toBe(0);
     expect(result.consequenceSteps).toHaveLength(0);
     expect(result.complaintDraft).toBeUndefined();
     expect(result.evidenceCards.every(c => c.status === 'Normal / Clear')).toBe(true);
+  });
+
+  // Test Case 11: Casual chat greeting in Hinglish
+  it('Test Case 11: Casual chat greeting in Hinglish -> No Financial Risk', () => {
+    const text = 'Hi, Harsh me pallak bol rhi hun';
+    const result = runSangyanAnalysis(text, 'text');
+    console.log('Result for casual greeting:', {
+      overallAssessment: result.overallAssessment,
+      heuristicScore: result.heuristicScore,
+      financialRelevance: result.financialRelevance,
+      documentContentType: result.documentContentType,
+      detectedPatterns: result.detectedPatterns.map(p => p.id),
+      classificationRationale: result.classificationRationale
+    });
+    expect(result.financialRelevance).toBe('NO');
+    expect(result.overallAssessment).toBe('No Financial Risk');
+  });
+
+  // Test Case 12: College chat / homework inquiry
+  it('Test Case 12: College chat inquiry -> No Financial Risk', () => {
+    const text = 'Good morning sir, please find attached my computer science assignment notes.';
+    const result = runSangyanAnalysis(text, 'text');
+    expect(result.financialRelevance).toBe('NO');
+    expect(result.overallAssessment).toBe('No Financial Risk');
+    expect(result.heuristicScore).toBe(0);
+  });
+
+  // Test Case 13: Normal WhatsApp chat between friends
+  it('Test Case 13: Normal WhatsApp chat between friends -> No Financial Risk', () => {
+    const text = 'Kaha ho bhai? Sham ko cricket khelne chalna hai kya? Kal chhutti hai.';
+    const result = runSangyanAnalysis(text, 'text');
+    expect(result.financialRelevance).toBe('NO');
+    expect(result.overallAssessment).toBe('No Financial Risk');
+    expect(result.heuristicScore).toBe(0);
   });
 });

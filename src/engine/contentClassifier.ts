@@ -351,7 +351,66 @@ export function classifyDocumentContentType(
     return 'INVESTMENT_CONTENT';
   }
 
-  // 10. Blank Image or Empty Text
+  // 10. Casual Chat / General Non-Financial Messages
+  const casualChatGreetings = [
+    'hi',
+    'hello',
+    'hey',
+    'good morning',
+    'good evening',
+    'good afternoon',
+    'good night',
+    'namaste',
+    'namaskar',
+    'kaise ho',
+    'kaisa hai',
+    'kya chal raha hai',
+    'kya kar rahe ho',
+    'me bol raha hun',
+    'me bol rhi hun',
+    'main bol raha hun',
+    'main bol rahi hoon',
+    'bol rhi hun',
+    'bol raha hun',
+    'kaha ho',
+    'whats up',
+    "what's up",
+    'wassup',
+    'how are you',
+    'how do you do',
+    'happy birthday',
+    'congratulations',
+    'thank you',
+    'thanks',
+    'see you',
+    'bye',
+    'meeting at',
+    'tomorrow is',
+    'recipe for',
+    'ingredients'
+  ];
+
+  const hasCasualGreeting = casualChatGreetings.some(g => lower.includes(g));
+  if (
+    hasCasualGreeting &&
+    !lower.includes('guaranteed') &&
+    !lower.includes('invest') &&
+    !lower.includes('profit') &&
+    !lower.includes('return') &&
+    !lower.includes('trading') &&
+    !lower.includes('sebi') &&
+    !lower.includes('demat') &&
+    !lower.includes('crypto') &&
+    !lower.includes('kyc') &&
+    !lower.includes('upi') &&
+    !lower.includes('₹') &&
+    !lower.includes('डबल') &&
+    !lower.includes('पैसे')
+  ) {
+    return 'NON_FINANCIAL_TEXT';
+  }
+
+  // 11. Blank Image or Empty Text
   if (
     lower === '' ||
     lower === '[blank image]' ||
@@ -439,6 +498,14 @@ export function determineFinancialRelevance(
     };
   }
 
+  if (contentType === 'NON_FINANCIAL_TEXT') {
+    return {
+      relevance: 'NO',
+      rationale: 'Casual personal message or general conversation. Zero financial, investment, or commercial transaction content detected.',
+      rationaleHi: 'यह एक सामान्य बातचीत या संदेश है। इसमें निवेश, शेयर या वित्तीय लेनदेन से जुड़ा कोई दावा नहीं है।'
+    };
+  }
+
   if (
     contentType === 'INVESTMENT_CONTENT' ||
     contentType === 'FINANCIAL_ADVERTISEMENT' ||
@@ -452,84 +519,74 @@ export function determineFinancialRelevance(
     };
   }
 
-  // UNKNOWN category: check if text has ANY financial or investment keywords
-  const genericFinancialKeywords = [
-    'invest',
-    'profit',
-    'return',
-    'trading',
-    'stock',
-    'share',
-    'crypto',
-    'forex',
-    'demat',
-    'sebi',
-    'broker',
-    'upi',
-    'wallet',
-    'fund',
-    'rupee',
-    '₹',
-    'rs',
-    'inr',
-    'deposit',
-    'withdraw',
-    'bonus',
-    'dividend',
-    'allotment',
-    'ipo',
-    'task',
-    'prepaid',
-    'commission',
-    'per like',
-    'loan',
-    'cibil',
-    'processing fee',
-    'processing charge',
-    'disburse',
-    'lottery',
-    'kbc',
-    'won rs',
-    'prize',
-    'digital arrest',
-    'illegal passport',
-    'narcotics',
-    'drugs parcel',
-    'typing work',
-    'registration fee',
-    'electricity',
-    'power',
-    'disconnected',
-    'डबल',
-    'दोगुना',
-    'मुनाफा',
-    'मुनाफ़ा',
-    'ब्याज',
-    'पैसे',
-    'पैसा',
-    'रुपये',
-    'रुपया',
-    'मांग',
-    'खाता',
-    'हजार',
-    'लाख',
-    'करोड़',
-    'ডিম্যাট',
-    'কেওয়াইসি',
-    'ব্লক',
-    'টাকা',
-    'পয়সা',
-    'লাভ',
-    'দ্বিগুণ',
-    'দুগুণ',
-    'ডিমেট',
-    'একাউণ্ট',
-    'টকা'
-  ];
+  // Precise Financial Content Detector - avoids false-positive substring matches like 'rs' in 'Harsh'
+  const isFinancialContent = (t: string): boolean => {
+    // 1. Explicit Currency amounts: ₹ 500, Rs. 1000, 5000 INR, $ 100
+    if (/(?:₹|\$|€|£)\s*\d+/i.test(t)) return true;
+    if (/\b(?:rs\.?|inr|usd|usdt|rupees?|rupiya)\s*\d+/i.test(t)) return true;
+    if (/\d+\s*(?:rs|inr|usd|rupees?|rupiya)\b/i.test(t)) return true;
+    if (/\b(?:rupees?|rupiya)\b/i.test(t)) return true;
 
-  const hasAnyFinancialToken = genericFinancialKeywords.some(k => lower.includes(k));
+    // 2. Specific financial, investment, and market terms (whole-word matching)
+    const financialWordRegexes = [
+      /\binvest(?:ment|ing|or|ors)?\b/i,
+      /\bprofit(?:s|able)?\b/i,
+      /\breturn(?:s)?\b/i,
+      /\btrad(?:e|ing|er|ers)?\b/i,
+      /\bstock(?:s)?\b/i,
+      /\bshare(?:s|holder|holders)?\b/i,
+      /\bcrypto(?:currency)?\b/i,
+      /\bforex\b/i,
+      /\bdemat\b/i,
+      /\bsebi\b/i,
+      /\bnsdl\b/i,
+      /\bcdsl\b/i,
+      /\bbroker(?:age)?\b/i,
+      /\bupi\b/i,
+      /\bwallet\b/i,
+      /\bdeposit(?:s|ed|ing)?\b/i,
+      /\bwithdraw(?:al|s|ed|ing)?\b/i,
+      /\bdividend(?:s)?\b/i,
+      /\ballotment\b/i,
+      /\bipo\b/i,
+      /\bloan\b/i,
+      /\bcibil\b/i,
+      /\bmutual\s+fund(?:s)?\b/i,
+      /\bsip\b/i,
+      /\bprocessing\s+fee\b/i,
+      /\bverification\s+fee\b/i,
+      /\bregistration\s+fee\b/i,
+      /\brelease\s+fee\b/i,
+      /\bprepaid\s+task\b/i,
+      /\bper\s+like\b/i,
+      /\bdigital\s+arrest\b/i,
+      /\billegal\s+passport\b/i,
+      /\bnarcotics\b/i,
+      /\bdrugs\s+parcel\b/i,
+      /\btyping\s+work\b/i,
+      /\blottery\b/i,
+      /\bkbc\b/i,
+      /\belectricity\s+officer\b/i,
+      /\bpower\s+will\s+be\s+disconnected\b/i
+    ];
+    if (financialWordRegexes.some(r => r.test(t))) return true;
 
-  if (hasAnyFinancialToken) {
+    // 3. Vernacular (Hindi, Bengali, Assamese) financial phrases
+    const vernacularFinancialPhrases = [
+      'डबल', 'दोगुना', 'दो गुना', 'तीन गुना', 'मुनाफा', 'मुनाफ़ा', 'ब्याज',
+      'पैसे ट्रांसफर', 'पैसे भेजो', 'रुपये भेजो', 'खाता ब्लॉक', 'खाता सस्पेंड',
+      'पैसे मांग', 'रुपये मांग', 'पैसा मांग', 'हजार रुपये', 'लाख रुपये', 'करोड़',
+      'ডিমেট', 'কেওয়াইসি', 'টাকা পাঠান', 'টকা পঠিয়াওক', 'লাভ', 'দ্বিগুণ', 'দুগুণ',
+      'টাকা দ্বিগুণ', 'টকা দুগুণ', 'পইচা'
+    ];
+    if (vernacularFinancialPhrases.some(p => t.includes(p))) return true;
+
+    return false;
+  };
+
+  const hasFinancialContent = isFinancialContent(lower);
+
+  if (hasFinancialContent) {
     return {
       relevance: 'YES',
       rationale: 'Contains financial terms and market claims requiring regulatory safety evaluation.',
@@ -537,40 +594,7 @@ export function determineFinancialRelevance(
     };
   }
 
-  // Explicitly non-financial image text (blank image, food recipes, etc.)
-  if (
-    lower.includes('[blank image') ||
-    lower.includes('recipe for') ||
-    lower.includes('butter masala') ||
-    lower.includes('chocolate cake')
-  ) {
-    return {
-      relevance: 'NO',
-      rationale: 'Non-financial content detected. Zero investment or market claims present.',
-      rationaleHi: 'गैर-वित्तीय सामग्री पहचानी गई। इसमें कोई वित्तीय या निवेश संबंधी दावा नहीं है।'
-    };
-  }
-
-  // For uploaded images where OCR is pending, partial, or placeholder:
-  // If not explicitly identified as personal/identity/educational doc, treat as UNCERTAIN
-  // so visual multimodal AI or user caution applies rather than falsely clearing as "No Financial Risk"
-  if (inputType === 'image') {
-    return {
-      relevance: 'UNCERTAIN',
-      rationale: 'Visual image upload pending deep multimodal forensic inspection. Independent visual verification active.',
-      rationaleHi: 'अपलोड की गई छवि की मल्टी-मॉडल एआई द्वारा दृश्य जांच जारी है।'
-    };
-  }
-
-  if (lower === '') {
-    return {
-      relevance: 'NO',
-      rationale: 'No financial or investment-related claims detected in this content.',
-      rationaleHi: 'इस सामग्री में वित्तीय या निवेश से जुड़ा कोई विषय नहीं पाया गया।'
-    };
-  }
-
-  // Financial token absent in standard text
+  // Non-financial content (casual chat, personal photos, recipes, normal screenshots, notes)
   return {
     relevance: 'NO',
     rationale: 'No financial or investment-related claims detected in this content.',

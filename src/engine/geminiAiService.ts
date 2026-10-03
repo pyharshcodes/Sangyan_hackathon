@@ -297,6 +297,40 @@ export function synthesizeOfflineGeminiResponse(
   let regulatoryViolationNotes = '';
   let riskLevel: 'Critical' | 'High' | 'Needs Verification' | 'Low' = 'High';
 
+  const isNonFinancial =
+    !lower.includes('guaranteed') &&
+    !lower.includes('invest') &&
+    !lower.includes('profit') &&
+    !lower.includes('return') &&
+    !lower.includes('trading') &&
+    !lower.includes('sebi') &&
+    !lower.includes('demat') &&
+    !lower.includes('crypto') &&
+    !lower.includes('kyc') &&
+    !lower.includes('upi') &&
+    !lower.includes('₹') &&
+    !lower.includes('डबल') &&
+    !lower.includes('पैसे') &&
+    !lower.includes('रुपये') &&
+    !lower.includes('task') &&
+    !lower.includes('fee') &&
+    !lower.includes('loan') &&
+    !lower.includes('lottery') &&
+    !lower.includes('arrest');
+
+  if (isNonFinancial || lower.includes('marksheet') || lower.includes('jee') || lower.includes('student') || lower.includes('college') || lower.includes('recipe')) {
+    return {
+      aiAnalysis: 'Non-financial communication. Analysis confirms personal, academic, or everyday message with zero financial solicitations, market claims, or deception.',
+      aiExplanationHi: 'यह एक सामान्य गैर-वित्तीय संदेश है। इसमें शेयर बाज़ार, पैसे के निवेश या वित्तीय धोखाधड़ी से जुड़ा कोई जोखिम नहीं है।',
+      manipulationTriggers: [],
+      regulatoryViolationNotes: 'Non-financial content. Not subject to SEBI regulatory jurisdiction.',
+      confidenceScore: 0,
+      modelUsed: 'Google Gemini 2.5 Flash (Edge Guardrail Mode)',
+      riskLevel: 'Low',
+      latencyMs: 120
+    };
+  }
+
   if (
     lower.includes('डबल') ||
     lower.includes('दोगुना') ||
@@ -336,16 +370,10 @@ export function synthesizeOfflineGeminiResponse(
     manipulationTriggers = ['Unrealistic Greed Exploitation', 'Zero-Risk Deception', 'FOMO and Scarcity Pressure'];
     regulatoryViolationNotes = 'SEBI (Prohibition of Fraudulent and Unfair Trade Practices) Regulations, 2003 (PFUTP) & SEBI RA Reg 2014.';
     riskLevel = 'Critical';
-  } else if (lower.includes('marksheet') || lower.includes('jee') || lower.includes('student') || lower.includes('college') || lower.includes('personal')) {
-    aiAnalysis = 'Verified non-financial document. Content analysis confirms educational or institutional record with zero market claims or financial solicitation.';
-    aiExplanationHi = 'यह एक सामान्य दस्तावेज़ या अंकतालिका है। इसमें शेयर बाज़ार या निवेश से जुड़ा कोई धोखा नहीं है।';
-    manipulationTriggers = ['None Detected (Non-Financial Document)'];
-    regulatoryViolationNotes = 'Not subject to SEBI market jurisdiction.';
-    riskLevel = 'Low';
   } else {
     aiAnalysis = 'Ambiguous financial communication lacking verified regulatory licensing credentials. Independent verification via official SEBI registries (sebi.gov.in) is strongly advised before committing funds.';
     aiExplanationHi = 'इस संदेश में किए गए दावों की सेबी के पास कोई आधिकारिक पुष्टि नहीं है। पैसे लगाने से पहले स्वतंत्र जांच करें।';
-    manipulationTriggers = ['Unverified Commercial Claim', 'Lack of Mandatory Risk Disclosures'];
+    manipulationTriggers = [];
     regulatoryViolationNotes = 'SEBI Code of Conduct for Financial Market Intermediaries.';
     riskLevel = 'Needs Verification';
   }
@@ -355,7 +383,7 @@ export function synthesizeOfflineGeminiResponse(
     aiExplanationHi,
     manipulationTriggers,
     regulatoryViolationNotes,
-    confidenceScore: 94,
+    confidenceScore: riskLevel === 'Critical' ? 95 : 30,
     modelUsed: 'Google Gemini 2.5 Flash (Edge Guardrail Mode)',
     riskLevel,
     latencyMs: 380
@@ -396,14 +424,18 @@ ANALYZE THIS INVESTOR MESSAGE/CLAIM OR SCREENSHOT:
 DETECTED SIGNALS BY DETERMINISTIC GUARDRAIL ENGINE:
 ${detectedSignals.join(', ')}
 
+EVALUATION RULES:
+- OBJECTIVITY: If the content is an innocent personal message, casual greeting, marksheet, receipt, photo, or non-financial communication, you MUST set "riskLevel": "Low", "confidenceScore": 0, "manipulationTriggers": [], and "regulatoryViolationNotes": "None". DO NOT flag scams where none exist!
+- ONLY flag "Critical" or "High" if there are actual financial scams (Ponzi schemes, guaranteed return claims, Demat KYC phishing, unverified VIP trading tips, advance fee extortion, fake loans, digital arrest, or impersonation of SEBI/RBI).
+
 Respond ONLY in valid JSON with this exact structure:
 {
-  "aiAnalysis": "A 2-3 sentence analytical explanation of why this message or screenshot is deceptive, highlighting the psychological trap (FOMO, fake authority, urgency) and SEBI intermediary violations.",
-  "aiExplanationHi": "आसान हिंदी में 2-3 वाक्यों में समझाइए कि यह कैसे धोखा है और आम भारतीय परिवार के लिए एक आसान देहाती/व्यावहारिक उदाहरण दीजिए।",
-  "manipulationTriggers": ["Array of 2-3 specific manipulation techniques used, e.g. Artificial Scarcity, Sunk Cost Trap, Forged Regulatory Proof"],
-  "regulatoryViolationNotes": "Specific reference to SEBI regulations violated (e.g. SEBI Research Analyst Reg 2014, Prohibition of Fraudulent and Unfair Trade Practices PFUTP 2003, or BUDS Act 2019).",
-  "riskLevel": "Critical",
-  "confidenceScore": 95
+  "aiAnalysis": "A 2-3 sentence analytical explanation of the content.",
+  "aiExplanationHi": "आसान हिंदी में 2-3 वाक्यों में स्थिति समझाइए।",
+  "manipulationTriggers": ["Array of specific manipulation techniques used if any, or empty array [] if non-financial or safe"],
+  "regulatoryViolationNotes": "Reference to regulations violated if fraud, or 'None' if non-financial or legitimate.",
+  "riskLevel": "Low | Needs Verification | High | Critical",
+  "confidenceScore": 0
 }`;
 
   for (const model of modelsToAttempt) {
