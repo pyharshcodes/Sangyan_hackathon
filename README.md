@@ -63,9 +63,9 @@ SANGYAN KAVACH directly addresses the core mission of the **SANGYAN Investor Res
 | Rubric Pillar | Weight | Hackathon Requirement | SANGYAN KAVACH Implementation |
 | :--- | :---: | :--- | :--- |
 | **Resilience & Safety Impact** | **30%** | Measurably stop fraud *before* money changes hands | **Pre-Transaction Interception:** Evaluates messages, links, and screenshots at exposure. Generates automated **1930 Cyber Helpline** and **SEBI SCORES 2.0** complaint drafts. |
-| **Bharat-First Usability** | **25%** | Low cognitive load, regional voice/visual UX | **Voice-First Audio Explainer:** Web Speech synthesis in Hindi; replaces complex jargon with desi metaphors (e.g. comparing Ponzi schemes to dry wells); traffic-light visual UI. |
+| **Bharat-First Usability** | **25%** | Low cognitive load, regional voice/visual UX | **Voice-First Audio Explainer & Offline IVR:** Web Speech synthesis in Hindi; replaces complex jargon with desi metaphors; 0-internet telephony & USSD support. |
 | **Guardrails & Regulatory Trust** | **15%** | Non-commercial, zero stock tips, privacy-by-design | **Zero-Speculation Guarantee:** Strictly adheres to SEBI (IA) Regulations, 2013 by refusing buy/sell advice. In-memory privacy scrubbing compliant with **DPDP Act 2023**. |
-| **Technical Execution** | **15%** | Deep tech, multimodal OCR, registry verification | **Calibrated Multi-Engine Pipeline:** Deterministic rules, Negative Evidence Extractor, OCR forensics, and semantic LLM verification. |
+| **Technical Execution** | **15%** | Deep tech, multimodal OCR, registry verification | **Calibrated Multi-Engine Pipeline:** Deterministic rules, Negative Evidence Extractor, On-Device Tesseract.js OCR, and semantic LLM verification. |
 | **Feasibility & Scalability** | **15%** | Deployable to national public digital infrastructure | **Public Digital Good:** Ready for plug-and-play microservice integration into **SEBI Saarthi 2.0**, **NSDL Depository Portal**, or **DigiLocker**. |
 
 ---
@@ -130,6 +130,43 @@ A message can have high financial relevance without being fraudulent:
 
 ---
 
+## 📱 Interactive Simulators for Bharat (Tier-2/3 Inclusivity)
+
+Navigable via top navigation **`📞 Bharat Simulator [IVR / USSD]`**:
+
+### 1. Offline Feature Phone & Keypad Simulator (*99*1930#)
+* **Zero-Internet GSM Rails:** Simulates basic ₹1,000 keypad feature phones used by 400M+ Indians.
+* **Interactive Nokia/JioPhone Hardware Mockup:**
+  - High-contrast OLED dark display (`#030712`) with signal header (`📶 4G VOLTE  🔋 98%`).
+  - Tactile 3x4 alphanumeric keypad with Call (Green) and End (Red) keys.
+  - Interactive USSD menu (*99*1930#): Step 1 Menu $\to$ Step 2 Broker Registry Check $\to$ Step 3 Scam Alert $\to$ Step 4 1930 Account Freeze.
+  - 1800-SANGYAN Toll-Free Voice IVR with multi-lingual audio synthesis.
+
+### 2. WhatsApp Bharat Protection Bot (Multimodal Forward Scanner)
+* **Forwarded Text & Image/Screenshot Support:**
+  - Supports pasting forwarded WhatsApp claims or attaching screenshots via **Paperclip 📎 & Camera 📷 icons**.
+  - **On-Device Tesseract.js Web Worker OCR:** Extracts text directly in-browser with zero server-side exposure.
+* **Real Engine Prediction:**
+  - Dynamically evaluates forwarded content with the calibrated Evidence Risk Engine.
+  - Displays color-coded risk tags (`🟢 VERIFIED SAFE` or `🚨 CRITICAL SCAM`).
+  - Includes **Bhashini-style Vernacular Audio Note** in Hindi and 1-click **"View Complete Investigation Dossier"** button.
+
+---
+
+## 🎯 1-Click Jury Fast-Eval Test Presets
+
+Located prominently in the Hero Section for instant testing in < 1 second:
+
+| Preset Chip | Test Vector | Expected Score | Forensic Rationale |
+| :--- | :--- | :---: | :--- |
+| 🟢 **Safe Electricity Bill** | *"Your electricity bill of ₹1,248 is due on 8 October. Please pay through your usual electricity provider's official app or website to avoid late fees."* | **0/100 (BENIGN)** | Negative Evidence Engine discounts -60 pts (Official app referral, 0 external links). |
+| 🚨 **Fake Demat KYC Freeze** | *"URGENT: Your Demat trading account has been temporarily blocked due to incomplete KYC. Update PAN & bank details within 2 hours at https://nsdl-kyc-verify.in to avoid permanent suspension."* | **96/100 (CRITICAL)** | NSDL Impersonation, Credential Theft, 2-Hour Pressure Coercion. |
+| 🚨 **VIP Telegram 300% IPO** | *"Prof. Rajesh Sharma (Reg: INA998877112) Guaranteed 300% profit in 48 hours on SME IPO! Transfer ₹25,000 to personal UPI."* | **82/100 (CRITICAL)** | SEBI Registration Checksum Failure, Guaranteed Returns, Personal UPI Diversion. |
+| 🟢 **Official SEBI Shiksha** | *"SEBI Investor Awareness: Understanding Index Funds and Market Volatility. Past performance does not guarantee future results."* | **05/100 (BENIGN)** | Legitimate Awareness Notice, Verified Disclosures, No Coercive Pressure. |
+| 🚨 **YouTube Like Task Fraud** | *"Part-time job earn ₹3,000 daily! Simple task: like YouTube videos and subscribe channels. Earn ₹150 per like. Complete prepaid task to unlock VIP commissions."* | **CRITICAL SCAM** | Prepaid Task Bait, Phishing Commissions, Telegram Ponzi Channel. |
+
+---
+
 ## 📊 Empirical Evaluation & Benchmark Suite
 
 The engine is validated against a rigorous **465-sample multi-modal benchmark suite** (`src/engine/__tests__/productionEvaluationSuite.test.ts`):
@@ -171,19 +208,6 @@ False Negative Rate:       0.00% (Target: < 5.0%)
 
 ---
 
-## 🎯 Head-to-Head Live Contrast Demos
-
-Test these live right now on [**sangyan-hackathon.vercel.app**](https://sangyan-hackathon.vercel.app/):
-
-| Scenario | Input Text / Vector | Other LLMs | SANGYAN KAVACH | Rationale |
-| :--- | :--- | :---: | :---: | :--- |
-| **Case 1: Routine Electricity Bill** *(The Benchmark Test)* | *"Your electricity bill of ₹1,248 is due on 8 October. Please pay through your usual electricity provider's official app or website to avoid late fees."* | ❌ High Risk (65/100) | ✅ **BENIGN (0/100)** | Official app advised; 0 external links; 0 credential requests; -60 negative discount applied. |
-| **Case 2: Demat Account Phishing** | *"Urgent: Zerodha Demat blocked. Verify Re-KYC at https://zerodha-rekyc-update.vip within 2 hours."* | ⚠️ Medium/High | 🚨 **CRITICAL SCAM (96/100)** | Lookalike broker domain; credential theft vector; artificial 2-hour urgency. |
-| **Case 3: Telegram VIP Upper-Circuit Scheme** | *"Prof. Rajesh Sharma (Reg: INA998877112) Guaranteed 300% profit in 48 hours on SME IPO! Transfer ₹25,000 to personal UPI."* | ⚠️ High | 🚨 **CRITICAL SCAM (82/100)** | Invalid SEBI registration checksum; guaranteed return promise; personal UPI diversion. |
-| **Case 4: SEBI Awareness Advisory** | *"SEBI Investor Awareness: Understanding Index Funds and Market Volatility. Past performance does not guarantee future results."* | ❓ Uncertain | ✅ **BENIGN (05/100)** | Legitimate investor education; standard risk disclosures recognized. |
-
----
-
 ## 🛡️ Regulatory Compliance & Privacy Architecture
 
 ### 1. Digital Personal Data Protection (DPDP) Act, 2023
@@ -203,7 +227,7 @@ Test these live right now on [**sangyan-hackathon.vercel.app**](https://sangyan-
 ├── Framework & UI:     Next.js 14 / Vite, React 18, Tailwind CSS, Lucide React
 ├── Core Engine:        TypeScript (Strict Mode), Evidence-First Multi-Engine Fusion
 ├── Security Layer:     Zero-Trust Input Normalization, SSRF Whitelist, Prompt Injection Defense
-├── Multi-Modal AI:     Gemini 2.5 Flash / Pro (Semantic Grounding), Tesseract OCR Engine
+├── Multi-Modal AI:     Gemini 2.5 Flash / Pro (Semantic Grounding), Tesseract.js (On-Device OCR)
 ├── Testing & QA:       Vitest 5.0.3 (139 Automated Unit, Red-Team & Benchmark Tests)
 ├── Deployment:         Vercel Global Edge Network (Sub-second global latency)
 └── Compliance:         DPDP Act 2023, SEBI (IA) Regulations 2013
@@ -249,18 +273,23 @@ npm run preview
 Sangyan_Hackathon/
 ├── docs/
 │   └── SANGYAN_KAVACH_OFFICIAL_PITCH_DECK.pdf    # Official 10-slide Jury Presentation PDF
-├── public/                                       # Static assets and icons
+├── public/                                       # Static assets and brand logos
 ├── src/
 │   ├── components/                               # Modular React UI components
-│   │   ├── AnalysisResults.tsx                   # Risk card, badges & breakdown UI
-│   │   ├── EvidenceScoreBreakdown.tsx            # Mathematical evidence visualizer
-│   │   ├── ForensicConfidenceBreakdown.tsx       # Multi-engine confidence breakdown
-│   │   ├── Header.tsx                            # Navigation & branding
-│   │   ├── VoiceExplainer.tsx                    # Hindi vernacular audio engine
+│   │   ├── BharatSimulatorView.tsx               # Dedicated Feature Phone & WhatsApp View
+│   │   ├── FeaturePhoneIvrSimulator.tsx          # Keypad Feature Phone (*99# & IVR) Simulator
+│   │   ├── WhatsAppBharatSimulator.tsx           # Multimodal WhatsApp Forward Scanner
+│   │   ├── TrendingScamsShowcase.tsx             # Viral Cyber Scams Grid
+│   │   ├── CommunityThreatLedger.tsx             # Crowdsourced Threat Feed
+│   │   ├── InputTabs.tsx                         # 1-Click Fast-Eval Presets & Auto-Scroll
+│   │   ├── RiskAssessmentCard.tsx                # Calibrated 5-tier Risk Visualizer
+│   │   ├── EvidenceCardsGrid.tsx                 # Deception Signal Breakdown
+│   │   ├── HindiExplanationCard.tsx              # Vernacular Voice Explainer & Desi Analogies
 │   │   └── ...
 │   ├── engine/                                   # Core Safety & Fraud Detection Engines
 │   │   ├── evidenceRiskEngine.ts                 # Calibrated Evidence Risk Engine
 │   │   ├── negativeEvidenceExtractor.ts          # Negative Evidence & Discount Engine
+│   │   ├── ocrService.ts                         # On-Device Tesseract.js Web Worker
 │   │   ├── privacySanitizer.ts                   # DPDP Act 2023 In-Memory PII Redactor
 │   │   ├── promptInjectionDefense.ts             # Jailbreak & Adversarial Defense
 │   │   ├── safeUrlValidator.ts                   # SSRF & Malicious Scheme Blocker

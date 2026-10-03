@@ -16,7 +16,7 @@ import { FeaturePhoneIvrSimulator } from './FeaturePhoneIvrSimulator';
 import { WhatsAppBharatSimulator } from './WhatsAppBharatSimulator';
 
 interface BharatSimulatorViewProps {
-  onAnalyzeSample: (text: string, type: 'text' | 'image' | 'url') => void;
+  onAnalyzeSample: (text: string, type: 'text' | 'image' | 'url', imagePreviewUrl?: string) => void;
   onBackToAnalyze: () => void;
   lang: SupportedLanguage;
 }

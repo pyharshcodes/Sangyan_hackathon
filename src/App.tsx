@@ -292,9 +292,9 @@ export function App() {
         {/* VIEW 4: BHARAT FEATURE-PHONE & WHATSAPP SIMULATOR */}
         {currentView === 'simulator' && (
           <BharatSimulatorView
-            onAnalyzeSample={(text, type) => {
+            onAnalyzeSample={(text, type, imagePreviewUrl) => {
               setCurrentView('analyze');
-              handleStartAnalysis(text, type);
+              handleStartAnalysis(text, type, imagePreviewUrl);
             }}
             onBackToAnalyze={() => setCurrentView('analyze')}
             lang={lang}
