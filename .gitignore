@@ -17,6 +17,7 @@ start-tunnel.bat
 .env
 .env.local
 .env.*.local
+scratch/
 
 # Logs
 npm-debug.log*
