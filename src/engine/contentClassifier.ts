@@ -366,44 +366,44 @@ export function classifyDocumentContentType(
 
   // 10. Casual Chat / General Non-Financial Messages
   const casualChatGreetings = [
-    'hi',
-    'hello',
-    'hey',
-    'good morning',
-    'good evening',
-    'good afternoon',
-    'good night',
-    'namaste',
-    'namaskar',
-    'kaise ho',
-    'kaisa hai',
-    'kya chal raha hai',
-    'kya kar rahe ho',
-    'me bol raha hun',
-    'me bol rhi hun',
-    'main bol raha hun',
-    'main bol rahi hoon',
-    'bol rhi hun',
-    'bol raha hun',
-    'kaha ho',
-    'whats up',
-    "what's up",
-    'wassup',
-    'how are you',
-    'how do you do',
-    'happy birthday',
-    'congratulations',
-    'thank you',
-    'thanks',
-    'see you',
-    'bye',
-    'meeting at',
-    'tomorrow is',
-    'recipe for',
-    'ingredients'
+    /\bhi\b/i,
+    /\bhello\b/i,
+    /\bhey\b/i,
+    /\bgood morning\b/i,
+    /\bgood evening\b/i,
+    /\bgood afternoon\b/i,
+    /\bgood night\b/i,
+    /\bnamaste\b/i,
+    /\bnamaskar\b/i,
+    /\bkaise ho\b/i,
+    /\bkaisa hai\b/i,
+    /\bkya chal raha hai\b/i,
+    /\bkya kar rahe ho\b/i,
+    /\bme bol raha hun\b/i,
+    /\bme bol rhi hun\b/i,
+    /\bmain bol raha hun\b/i,
+    /\bmain bol rahi hoon\b/i,
+    /\bbol rhi hun\b/i,
+    /\bbol raha hun\b/i,
+    /\bkaha ho\b/i,
+    /\bwhats up\b/i,
+    /\bwhat's up\b/i,
+    /\bwassup\b/i,
+    /\bhow are you\b/i,
+    /\bhow do you do\b/i,
+    /\bhappy birthday\b/i,
+    /\bcongratulations\b/i,
+    /\bthank you\b/i,
+    /\bthanks\b/i,
+    /\bsee you\b/i,
+    /\bbye\b/i,
+    /\bmeeting at\b/i,
+    /\btomorrow is\b/i,
+    /\brecipe for\b/i,
+    /\bingredients\b/i
   ];
 
-  const hasCasualGreeting = casualChatGreetings.some(g => lower.includes(g));
+  const hasCasualGreeting = casualChatGreetings.some(regex => regex.test(lower));
   if (
     hasCasualGreeting &&
     !lower.includes('guaranteed') &&
@@ -630,7 +630,7 @@ export function classifyContent(
   // 1. Structural Content Classification
   const documentContentType = classifyDocumentContentType(text, inputType, fileName);
 
-  // 2. Check for Active Deceptive Patterns FIRST
+  // 2. Official Educational Notice Gate
   const isOfficialEducationalNotice =
     (lower.includes('be a smart investor') ||
       lower.includes('investor education') ||
@@ -639,26 +639,26 @@ export function classifyContent(
     !lower.includes('vip group') &&
     !lower.includes('paisa double');
 
-  const hasCritical = riskIndicators.some(i => i.severity === 'critical');
-  const highCount = riskIndicators.filter(i => i.severity === 'high').length;
-
-  if (!isOfficialEducationalNotice && (hasCritical || highCount >= 1 || hasSuspiciousDomain)) {
+  if (isOfficialEducationalNotice) {
     return {
-      category: 'Suspicious',
-      rationale: 'Contains verified deceptive patterns such as unrealistic guaranteed returns, regulatory impersonation, or unverified lookalike portals.',
-      rationaleHi: 'इस सामग्री में निश्चित मुनाफे के झूठे वादे, सेबी के नाम का दुरुपयोग या संदिग्ध लिंक जैसे गंभीर खतरे पाए गए हैं।',
-      documentContentType: documentContentType === 'UNKNOWN' ? 'INVESTMENT_MESSAGE' : documentContentType,
+      category: 'Educational',
+      rationale: 'Official regulatory investor education advisory from SEBI.',
+      rationaleHi: 'सेबी की आधिकारिक निवेशक जागरूकता और शिक्षा सामग्री।',
+      documentContentType: 'INVESTMENT_CONTENT',
       financialRelevance: 'YES',
-      relevanceExplanation: 'Contains active financial deception markers violating SEBI market regulations.',
-      relevanceExplanationHi: 'इसमें सेबी नियमों का उल्लंघन करने वाले भ्रामक वित्तीय दावे शामिल हैं।'
+      relevanceExplanation: 'Legitimate public education resource published by SEBI.',
+      relevanceExplanationHi: 'सेबी द्वारा प्रकाशित प्रामाणिक निवेशक शिक्षा सामग्री।'
     };
   }
 
   // 3. Financial Relevance Gate for Safe / Ambiguous Content
   const relevanceCheck = determineFinancialRelevance(documentContentType, text, inputType);
 
-  // If clearly non-financial and no scam indicators, return safe non-financial category immediately
-  if (relevanceCheck.relevance === 'NO') {
+  const hasCritical = riskIndicators.some(i => i.severity === 'critical');
+  const highCount = riskIndicators.filter(i => i.severity === 'high').length;
+
+  // If clearly non-financial and no critical scam indicators, return safe non-financial category immediately
+  if (relevanceCheck.relevance === 'NO' && !hasCritical) {
     if (documentContentType === 'PERSONAL_PHOTO') {
       return {
         category: 'Personal Content',
@@ -679,6 +679,18 @@ export function classifyContent(
       financialRelevance: 'NO',
       relevanceExplanation: relevanceCheck.rationale,
       relevanceExplanationHi: relevanceCheck.rationaleHi
+    };
+  }
+
+  if (hasCritical || highCount >= 1 || hasSuspiciousDomain) {
+    return {
+      category: 'Suspicious',
+      rationale: 'Contains verified deceptive patterns such as unrealistic guaranteed returns, regulatory impersonation, or unverified lookalike portals.',
+      rationaleHi: 'इस सामग्री में निश्चित मुनाफे के झूठे वादे, सेबी के नाम का दुरुपयोग या संदिग्ध लिंक जैसे गंभीर खतरे पाए गए हैं।',
+      documentContentType: documentContentType === 'UNKNOWN' ? 'INVESTMENT_MESSAGE' : documentContentType,
+      financialRelevance: 'YES',
+      relevanceExplanation: 'Contains active financial deception markers violating SEBI market regulations.',
+      relevanceExplanationHi: 'इसमें सेबी नियमों का उल्लंघन करने वाले भ्रामक वित्तीय दावे शामिल हैं।'
     };
   }
 

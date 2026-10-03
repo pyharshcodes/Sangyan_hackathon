@@ -289,4 +289,30 @@ www.sebi.gov.in`;
     expect(result.detectedPatterns).toHaveLength(0);
     expect(result.complaintDraft).toBeUndefined();
   });
+
+  // Test Case 15: Innocent WhatsApp conversation screenshot
+  it('Test Case 15: Innocent WhatsApp conversation screenshot -> No Financial Risk', () => {
+    const text = `WhatsApp
+10:30 AM
+Pallak: Hi Harsh, how are you doing?
+Harsh: I am good! Are you coming to college today?
+Pallak: Yes, see you in class!`;
+
+    const result = runSangyanAnalysis(text, 'image');
+    expect(result.overallAssessment).toBe('No Financial Risk');
+    expect(result.financialRelevance).toBe('NO');
+    expect(result.heuristicScore).toBe(0);
+    expect(result.detectedPatterns).toHaveLength(0);
+  });
+
+  // Test Case 16: Meeting reminder mentioning WhatsApp
+  it('Test Case 16: Meeting reminder mentioning WhatsApp -> No Financial Risk', () => {
+    const text = `Hey, let's connect on WhatsApp tomorrow at 10am for the project presentation.`;
+
+    const result = runSangyanAnalysis(text, 'text');
+    expect(result.overallAssessment).toBe('No Financial Risk');
+    expect(result.financialRelevance).toBe('NO');
+    expect(result.heuristicScore).toBe(0);
+    expect(result.detectedPatterns).toHaveLength(0);
+  });
 });

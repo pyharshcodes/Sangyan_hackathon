@@ -21,7 +21,7 @@ import { ThreatRadarBar } from './components/ThreatRadarBar';
 import { playScanSound, playAlertSound, playSafeChime } from './utils/soundEffects';
 import { AnalysisResult, SupportedLanguage } from './types';
 import { runSangyanAnalysis } from './engine/coreAnalyzer';
-import { analyzeWithGemini, isGeminiAiActive } from './engine/geminiAiService';
+import { analyzeWithGemini, isGeminiAiActive, synthesizeOfflineGeminiResponse } from './engine/geminiAiService';
 import { RotateCcw, Eye, EyeOff, Lock, HeartHandshake } from 'lucide-react';
 import { TRANSLATIONS } from './data/translations';
 
@@ -82,6 +82,8 @@ export function App() {
       })
       .catch((err) => {
         console.warn('Gemini non-blocking enrichment error:', err);
+        const fallback = synthesizeOfflineGeminiResponse(result.sanitizedInput, detectedSignals, imagePreviewUrl);
+        setAnalysisResult((prev) => (prev ? { ...prev, geminiInsights: fallback } : null));
       })
       .finally(() => {
         setIsGeminiLoading(false);

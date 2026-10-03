@@ -218,10 +218,10 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
       if (ocrResult.text && ocrResult.text.length > 5) {
         extractedText = ocrResult.text;
       } else {
-        extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify Screenshot' to inspect financial claims.)`;
+        extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify Screenshot' to inspect.)`;
       }
     } catch (err) {
-      extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify Screenshot' to inspect financial claims.)`;
+      extractedText = `[Screenshot: ${fileCheck.sanitizedName}]\n(Visual forensic verification ready. Click 'Verify Screenshot' to inspect.)`;
     } finally {
       setIsOcrScanning(false);
       setOcrProgressText('');
@@ -235,7 +235,7 @@ export const InputTabs: React.FC<InputTabsProps> = ({ onAnalyze, lang }) => {
     const textToSend =
       ocrText && ocrText.trim().length > 10 && !ocrText.includes('[Scanning image')
         ? ocrText
-        : `Screenshot document inspection: ${selectedImageName || 'uploaded_document'}`;
+        : `Screenshot inspection: ${selectedImageName || 'uploaded_image'}`;
     onAnalyze(textToSend, 'image', imagePreviewUrl || undefined);
   };
 

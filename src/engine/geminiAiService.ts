@@ -454,7 +454,7 @@ Respond ONLY in valid JSON with this exact structure:
 
       // Construct multimodal parts if image data URL is provided
       const parts: any[] = [];
-      if (imageDataUrl && imageDataUrl.startsWith('data:image/')) {
+      if (imageDataUrl && imageDataUrl.startsWith('data:image/') && imageDataUrl.length < 4000000) {
         const matches = imageDataUrl.match(/^data:(image\/[a-zA-Z0-9.+_-]+);base64,(.+)$/s);
         if (matches && matches[1] && matches[2]) {
           parts.push({
@@ -468,7 +468,7 @@ Respond ONLY in valid JSON with this exact structure:
       parts.push({ text: prompt });
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-      const response = await fetch(url, {
+      let response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -477,11 +477,31 @@ Respond ONLY in valid JSON with this exact structure:
         body: JSON.stringify({
           contents: [{ parts }],
           generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json'
+            temperature: 0.1
           }
         })
       });
+
+      // If multimodal request failed (e.g. 400 bad request or payload size), retry with text only
+      if (!response.ok && parts.length > 1) {
+        console.warn(`[SANGYAN Kavach] Multimodal request on ${model} failed (${response.status}). Retrying with text-only prompt.`);
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), 10000);
+        response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          signal: retryController.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.1
+            }
+          })
+        });
+        clearTimeout(retryTimeoutId);
+      }
 
       clearTimeout(timeoutId);
       const latencyMs = Date.now() - startTime;
@@ -503,11 +523,15 @@ Respond ONLY in valid JSON with this exact structure:
       let parsed: any = null;
       try {
         let cleaned = textResult.trim();
-        if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/^```json\s*/i, '');
-        if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```\s*/, '');
-        if (cleaned.endsWith('```')) cleaned = cleaned.replace(/\s*```$/, '');
-        cleaned = cleaned.trim();
-        parsed = JSON.parse(cleaned);
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/^```json\s*/i, '');
+          if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```\s*/, '');
+          if (cleaned.endsWith('```')) cleaned = cleaned.replace(/\s*```$/, '');
+          parsed = JSON.parse(cleaned.trim());
+        }
       } catch (parseErr) {
         console.warn('[SANGYAN Kavach] JSON clean parse failed, using robust fallback extraction:', parseErr);
         parsed = {
@@ -537,6 +561,6 @@ Respond ONLY in valid JSON with this exact structure:
     }
   }
 
-  console.warn('[SANGYAN Kavach] All Gemini models exhausted or unreachable, falling back to Symbolic AI.');
-  return null;
+  console.warn('[SANGYAN Kavach] Cloud Gemini models exhausted or unreachable, returning guaranteed Edge Guardrail synthesis.');
+  return synthesizeOfflineGeminiResponse(sanitizedText, detectedSignals, imageDataUrl);
 }

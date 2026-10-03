@@ -145,22 +145,23 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
   }
 
   // Pattern 3: High Urgency & Artificial Scarcity (FOMO)
-  if (
+  const hasFomoUrgency =
     /only \d+ (seats|slots|spots|users|investors)/i.test(lower) ||
     lower.includes('seats remaining') ||
     lower.includes('slots remaining') ||
     lower.includes('limited slots') ||
-    lower.includes('urgent') ||
-    /within \d+\s*(hours|hrs|minutes|mins|days)/i.test(lower) ||
-    /before \d+\s*(pm|am|today)/i.test(lower) ||
-    lower.includes('immediately') ||
+    (/within \d+\s*(hours|hrs|minutes|mins)/i.test(lower) && (lower.includes('block') || lower.includes('suspend') || lower.includes('transfer') || lower.includes('pay') || lower.includes('kyc') || lower.includes('offer') || lower.includes('account') || lower.includes('demat') || lower.includes('slot'))) ||
+    (/before \d+\s*(pm|am|today)/i.test(lower) && (lower.includes('block') || lower.includes('suspend') || lower.includes('transfer') || lower.includes('pay') || lower.includes('kyc') || lower.includes('offer') || lower.includes('account'))) ||
     lower.includes('jackpot calls') ||
     lower.includes('lock upper circuit') ||
     lower.includes('account forfeiture') ||
-    lower.includes('hurry') ||
+    (lower.includes('urgent') && (lower.includes('kyc') || lower.includes('pan') || lower.includes('demat') || lower.includes('transfer') || lower.includes('block') || lower.includes('pay') || lower.includes('slot') || lower.includes('invest') || lower.includes('account') || lower.includes('action required'))) ||
+    (lower.includes('immediately') && (lower.includes('kyc') || lower.includes('pan') || lower.includes('demat') || lower.includes('transfer') || lower.includes('block') || lower.includes('update') || lower.includes('pay') || lower.includes('invest') || lower.includes('account'))) ||
+    (lower.includes('hurry') && (lower.includes('slot') || lower.includes('seat') || lower.includes('offer') || lower.includes('invest') || lower.includes('gain') || lower.includes('profit'))) ||
     lower.includes('जल्दी करें') ||
-    lower.includes('केवल 2 सीटें')
-  ) {
+    lower.includes('केवल 2 सीटें');
+
+  if (hasFomoUrgency) {
     indicators.push({
       id: 'pattern-urgency-fomo',
       category: 'Urgency',
@@ -231,21 +232,23 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
   }
 
   // Pattern 6: VIP / Insider Group / Unofficial Channel
-  if (
+  const hasVipGroupContext =
     lower.includes('vip investor group') ||
     lower.includes('vip jackpot') ||
     lower.includes('vip group') ||
     lower.includes('vip calls') ||
-    lower.includes('t.me/') ||
-    lower.includes('wa.me/') ||
-    lower.includes('telegram') ||
-    lower.includes('whatsapp') ||
     lower.includes('upper circuit') ||
-    lower.includes('insider') ||
+    lower.includes('insider calls') ||
+    lower.includes('insider jackpot') ||
     lower.includes('secret sme ipo tip') ||
     lower.includes('secret tip') ||
-    lower.includes('गुप्त सूचना')
-  ) {
+    lower.includes('गुप्त सूचना') ||
+    lower.includes('t.me/') ||
+    lower.includes('wa.me/') ||
+    (lower.includes('whatsapp') && (lower.includes('vip') || lower.includes('tip') || lower.includes('group') || lower.includes('call') || lower.includes('profit') || lower.includes('invest') || lower.includes('circuit') || lower.includes('join') || lower.includes('channel') || lower.includes('link'))) ||
+    (lower.includes('telegram') && (lower.includes('vip') || lower.includes('tip') || lower.includes('channel') || lower.includes('group') || lower.includes('call') || lower.includes('profit') || lower.includes('invest') || lower.includes('circuit') || lower.includes('join') || lower.includes('link')));
+
+  if (hasVipGroupContext) {
     indicators.push({
       id: 'pattern-vip-group',
       category: 'Unregistered',

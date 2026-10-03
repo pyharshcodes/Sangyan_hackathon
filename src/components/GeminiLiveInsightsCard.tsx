@@ -149,7 +149,43 @@ export function GeminiLiveInsightsCard({
     );
   }
 
-  // 3. UNCONFIGURED STATE: Prompt user/judge to connect key
+  // 3. CONFIGURED STATE (WAITING OR LOCAL REASONING ACTIVE)
+  if (isConfigured && !insights) {
+    return (
+      <div className="bg-gradient-to-r from-indigo-900 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-md border border-indigo-700/60 flex items-center justify-between gap-4">
+        <div className="flex items-center space-x-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center text-indigo-300 shrink-0">
+            <Sparkles className="w-5 h-5 text-indigo-300 animate-spin" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="text-[11px] font-mono text-emerald-300 font-bold uppercase tracking-wider">
+                Google Gemini Engine Active
+              </span>
+            </div>
+            <h4 className="text-sm sm:text-base font-bold text-white mt-0.5">
+              {isHindi ? 'जेमिनी एआई विश्लेषण सक्रिय' : 'Generative AI Reasoning Engine Active'}
+            </h4>
+            <p className="text-xs text-indigo-200 mt-0.5">
+              {isHindi ? 'सत्यापित सेबी नियामक नियमों के तहत संदर्भ सुरक्षा विश्लेषण सक्रिय है।' : 'Contextual reasoning and deception defense active under SEBI regulatory guidelines.'}
+            </p>
+          </div>
+        </div>
+        {onOpenConfig && (
+          <button
+            onClick={onOpenConfig}
+            className="shrink-0 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 flex items-center space-x-2 cursor-pointer transition-all"
+          >
+            <Key className="w-3.5 h-3.5 text-amber-300" />
+            <span>{isHindi ? 'सेटिंग्स' : 'AI Settings'}</span>
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // 4. UNCONFIGURED STATE: Prompt user/judge to connect key
   return (
     <div className="bg-gradient-to-r from-indigo-50 via-white to-blue-50 border border-indigo-200/90 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
       <div className="flex items-center space-x-3.5">
