@@ -162,6 +162,63 @@ export function classifyDocumentContentType(
     return 'BANK_DOCUMENT';
   }
 
+  // 5. Medical Document Detection (Doctor Prescription, Clinic Slip, Medicine Dosage)
+  const medicalKeywords = [
+    'doctor prescription',
+    'prescription',
+    'clinic',
+    'hospital',
+    'patient',
+    'dr. sharma',
+    'dr.',
+    'doctor',
+    'paracetamol',
+    'cetirizine',
+    'tablet',
+    'capsule',
+    'mg tds',
+    'mg od',
+    'take after food',
+    'take before food',
+    'dosage',
+    'pharmacy',
+    'rx'
+  ];
+  if (medicalKeywords.some(k => lower.includes(k)) && !lower.includes('invest') && !lower.includes('guaranteed') && !lower.includes('profit')) {
+    return 'MEDICAL_DOCUMENT';
+  }
+
+  // 6. Retail & Grocery Store Receipt Detection
+  const receiptKeywords = [
+    'grocery store bill',
+    'store bill',
+    'supermarket',
+    'd-mart',
+    'dmart',
+    'retail invoice',
+    'total amount: rs',
+    'restaurant bill',
+    'food receipt',
+    'grocery bill',
+    'retail bill',
+    'cash memo',
+    'invoice bill'
+  ];
+  const hasFoodItems = ['rice', 'oil', 'milk', 'bread', 'butter', 'sugar', 'dal', 'tea', 'wheat', 'vegetables'].some(k => lower.includes(k));
+  if ((receiptKeywords.some(k => lower.includes(k)) || (hasFoodItems && lower.includes('bill'))) && !lower.includes('invest') && !lower.includes('guaranteed')) {
+    return 'RECEIPT_DOCUMENT';
+  }
+
+  // 7. Legitimate Utility Bill Reminder (No disconnection extortion)
+  const isUtilityBill =
+    (lower.includes('electricity bill') || lower.includes('water bill') || lower.includes('gas bill')) &&
+    (lower.includes('ca ') || lower.includes('ca no') || lower.includes('bbps') || lower.includes('due date')) &&
+    !lower.includes('disconnected') && !lower.includes('disconnect') && !lower.includes('call electricity officer');
+
+  if (isUtilityBill) {
+    return 'UTILITY_BILL';
+  }
+
   // 5. Legitimate Educational Awareness
   const isEducationalContent =
     lower.includes('investor awareness') ||
@@ -358,6 +415,30 @@ export function determineFinancialRelevance(
     };
   }
 
+  if (contentType === 'MEDICAL_DOCUMENT') {
+    return {
+      relevance: 'NO',
+      rationale: 'Medical document / doctor prescription. Zero financial investment or scam claims present.',
+      rationaleHi: 'यह एक चिकित्सकीय पर्चा है। इसमें कोई वित्तीय जोखिम या निवेश का दावा नहीं है।'
+    };
+  }
+
+  if (contentType === 'RECEIPT_DOCUMENT') {
+    return {
+      relevance: 'NO',
+      rationale: 'Retail or grocery purchase invoice. Routine merchant transaction with zero investment solicitation.',
+      rationaleHi: 'यह घरेलू खरीदारी या सामान्य दुकान की रसीद है। इसमें कोई निवेश धोखाधड़ी नहीं है।'
+    };
+  }
+
+  if (contentType === 'UTILITY_BILL') {
+    return {
+      relevance: 'NO',
+      rationale: 'Routine utility bill statement. Legitimate billing alert with zero fraudulent investment schemes.',
+      rationaleHi: 'यह एक सामान्य बिजली या उपयोगिता बिल है। इसमें कोई धोखाधड़ी नहीं है।'
+    };
+  }
+
   if (
     contentType === 'INVESTMENT_CONTENT' ||
     contentType === 'FINANCIAL_ADVERTISEMENT' ||
@@ -389,6 +470,7 @@ export function determineFinancialRelevance(
     'fund',
     'rupee',
     '₹',
+    'rs',
     'inr',
     'deposit',
     'withdraw',
@@ -400,6 +482,24 @@ export function determineFinancialRelevance(
     'prepaid',
     'commission',
     'per like',
+    'loan',
+    'cibil',
+    'processing fee',
+    'processing charge',
+    'disburse',
+    'lottery',
+    'kbc',
+    'won rs',
+    'prize',
+    'digital arrest',
+    'illegal passport',
+    'narcotics',
+    'drugs parcel',
+    'typing work',
+    'registration fee',
+    'electricity',
+    'power',
+    'disconnected',
     'डबल',
     'दोगुना',
     'मुनाफा',
@@ -414,11 +514,16 @@ export function determineFinancialRelevance(
     'हजार',
     'लाख',
     'करोड़',
-    'टাকা',
+    'ডিম্যাট',
+    'কেওয়াইসি',
+    'ব্লক',
+    'টাকা',
     'পয়সা',
     'লাভ',
     'দ্বিগুণ',
     'দুগুণ',
+    'ডিমেট',
+    'একাউণ্ট',
     'টকা'
   ];
 
@@ -566,15 +671,24 @@ export function classifyContent(
   const educationalMatchCount = educationalKeywords.filter(k => lower.includes(k)).length;
   const isEducational = educationalMatchCount >= 1 && riskIndicators.length === 0;
 
-  if (isEducational) {
+  const isAuthenticBankingAlert =
+    (lower.includes('otp for login') || lower.includes('your otp for') || lower.includes('one time password') || (lower.includes('credited to your a/c') && lower.includes('salary credit'))) &&
+    (lower.includes('do not share') || lower.includes('valid for') || lower.includes('netbanking') || lower.includes('neft')) &&
+    riskIndicators.length === 0;
+
+  if (isEducational || isAuthenticBankingAlert) {
     return {
       category: 'Educational',
-      rationale: 'Presents conceptual financial education with balanced risk disclosures. Contains no commercial soliciting, no speculative advice, and no deceptive urgency.',
-      rationaleHi: 'यह प्रामाणिक वित्तीय शिक्षा है जिसमें बाज़ार के जोखिमों को ईमानदारी से समझाया गया है और किसी शेयर को खरीदने का दबाव नहीं है।',
+      rationale: isAuthenticBankingAlert
+        ? 'Official 2FA bank authentication or transactional alert with mandatory security disclosure. Zero fraudulent solicitation present.'
+        : 'Presents conceptual financial education with balanced risk disclosures. Contains no commercial soliciting, no speculative advice, and no deceptive urgency.',
+      rationaleHi: isAuthenticBankingAlert
+        ? 'यह आधिकारिक बैंक द्वारा भेजा गया प्रामाणिक सुरक्षा ओटीपी या लेन-देन अलर्ट है।'
+        : 'यह प्रामाणिक वित्तीय शिक्षा है जिसमें बाज़ार के जोखिमों को ईमानदारी से समझाया गया है और किसी शेयर को खरीदने का दबाव नहीं है।',
       documentContentType: 'INVESTMENT_CONTENT',
       financialRelevance: 'YES',
-      relevanceExplanation: 'Balanced financial literacy content without deceptive mechanisms.',
-      relevanceExplanationHi: 'संतुलित वित्तीय साक्षरता सामग्री जिसमें कोई धोखाधड़ी नहीं है।'
+      relevanceExplanation: 'Balanced financial literacy or authentic banking alert.',
+      relevanceExplanationHi: 'संतुलित वित्तीय साक्षरता या प्रामाणिक बैंक सुरक्षा सूचना।'
     };
   }
 

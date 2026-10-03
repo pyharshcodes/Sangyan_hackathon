@@ -28,6 +28,46 @@ export function evaluateGuardrailQuery(input: string): GuardrailCheckResult {
 
   const lower = input.toLowerCase().trim();
 
+  // If the input is an unsolicited incoming message being tested/verified (contains scam hallmarks,
+  // promises of returns, urgency, group solicitation, links, payment demands), it is NOT a user asking for advice!
+  const isIncomingSolicitation =
+    lower.includes('नमस्ते') ||
+    lower.includes('hello sir') ||
+    lower.includes('dear customer') ||
+    lower.includes('congratulations') ||
+    lower.includes('हमारे') ||
+    lower.includes('जुड़ें') ||
+    lower.includes('जॉइन') ||
+    lower.includes('join our') ||
+    lower.includes('join vip') ||
+    lower.includes('सीटें बची') ||
+    lower.includes('slots remaining') ||
+    lower.includes('पक्का मुनाफा') ||
+    lower.includes('100% गारंटी') ||
+    lower.includes('paisa double') ||
+    lower.includes('दो महीने में डबल') ||
+    lower.includes('per like') ||
+    lower.includes('per task') ||
+    lower.includes('contact whatsapp') ||
+    lower.includes('http://') ||
+    lower.includes('https://') ||
+    lower.includes('t.me/') ||
+    lower.includes('wa.me/');
+
+  if (isIncomingSolicitation) {
+    return {
+      isProhibited: false,
+      reason: '',
+      reasonHi: '',
+      reasonBn: '',
+      reasonAs: '',
+      guidance: '',
+      guidanceHi: '',
+      guidanceBn: '',
+      guidanceAs: ''
+    };
+  }
+
   // 1. Stock / Asset Recommendation Requests
   const stockRecEnglish = /\b(should\s+i\s+(buy|sell|invest)|which\s+(stock|share|crypto|coin|mutual\s*fund|asset)\s+(to|should\s+i)\s+(buy|invest)|what\s+stock\s+to\s+buy|suggest\s+(me\s+)?(a\s+)?(stock|share|portfolio)|best\s+(penny\s+)?(stocks|shares)\s+to\s+buy|share\s+tips|stock\s+tips|which\s+share\s+should\s+i\s+buy)\b/i;
   const stockRecIndic = /(क्या\s+(मुझे|हम)\s+.*(खरीदना|बेचना|निवेश|लें|खरीदें)|कौन\s*सा\s*(शेयर|स्टॉक)\s*(खरीदें|लें|खरीदूं)|शेयर\s+(खरीदूं|खरीदना\s*चाहिए)|কোন\s*(শেয়ার|স্টক)\s*কিনব|কিনা\s*উচিত|কোনটো\s*শ্বেয়াৰ\s*কিনিম|কিনিব\s*লাগে\s*নেকি)/iu;
@@ -106,7 +146,7 @@ export function evaluateGuardrailQuery(input: string): GuardrailCheckResult {
 
   // 5. Tip Service / VIP Group Demands
   const tipServiceEnglish = /\b(give\s+me\s+(stock|trading|intraday|jackpot)\s+tips|telegram\s+(channel|group)\s+for\s+trading|vip\s+calls|free\s+tips)\b/i;
-  const tipServiceIndic = /(टिप्स\s*चाहिए|ट्रेडिंग\s*ग्रुप|शेयर\s*टिप्स|টিপস\s*চাই|টিপছ\s*লাগে)/iu;
+  const tipServiceIndic = /(टिप्स\s*चाहिए|ट्रेडिंग\s*ग्रुप\s*(चाहिए|बताएं|बताओ|सुझाएं|दिलाओ)|शेयर\s*टिप्स\s*(चाहिए|दो)|টিপস\s*চাই|টিপছ\s*লাগে)/iu;
 
   if (tipServiceEnglish.test(lower) || tipServiceIndic.test(lower)) {
     return {

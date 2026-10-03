@@ -37,6 +37,24 @@ export const AUTHENTIC_MARKET_ENTITIES: RegisteredBrokerInfo[] = [
     sebiRegPrefix: 'EXCHANGE-BSE',
     type: 'Recognized Stock Exchange'
   },
+  {
+    name: 'State Bank of India (SBI)',
+    officialDomains: ['sbi.co.in', 'onlinesbi.sbi', 'onlinesbi.com', 'sbi'],
+    sebiRegPrefix: 'BANK-SBI',
+    type: 'Scheduled Commercial Bank / Depository Participant'
+  },
+  {
+    name: 'HDFC Bank Limited',
+    officialDomains: ['hdfcbank.com'],
+    sebiRegPrefix: 'BANK-HDFC',
+    type: 'Scheduled Commercial Bank / Depository Participant'
+  },
+  {
+    name: 'ICICI Bank Limited',
+    officialDomains: ['icicibank.com'],
+    sebiRegPrefix: 'BANK-ICICI',
+    type: 'Scheduled Commercial Bank / Depository Participant'
+  },
 
   // --- Prominent Stock Brokers / DPs ---
   {

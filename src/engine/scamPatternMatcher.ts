@@ -141,27 +141,36 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     });
   }
 
-  // Pattern 4: Phishing & Demat Account Suspension Threats
-  if (
+  // Pattern 4: Phishing & Demat / Bank Account Suspension Threats
+  const hasAccountFreezePhishing =
     lower.includes('demat trading account has been temporarily blocked') ||
-    /(demat|trading|broker|account)\s*(will be|has been|is)\s*(suspended|blocked|frozen|locked)/i.test(lower) ||
+    /(demat|trading|broker|account|yono)\s*(?:will be|has been|is)?\s*(?:temporarily\s*)?(suspended|blocked|frozen|locked)/i.test(lower) ||
     lower.includes('account will be suspended') ||
     lower.includes('permanent account blockage') ||
     lower.includes('re-kyc') ||
     lower.includes('rekyc') ||
     lower.includes('incomplete kyc') ||
+    lower.includes('kyc has expired') ||
     lower.includes('verify your pan') ||
+    lower.includes('update pan') ||
     lower.includes('update your aadhaar & bank details') ||
     lower.includes('demat-kyc') ||
-    lower.includes('खाता बंद')
-  ) {
+    lower.includes('खाता बंद') ||
+    lower.includes('ডিম্যাট অ্যাকাউন্ট') ||
+    lower.includes('ব্লক করা হয়েছে') ||
+    lower.includes('কেওয়াইসি আপডেট') ||
+    lower.includes('ডিমেট একাউণ্ট') ||
+    lower.includes('ব্লক কৰা হৈছে') ||
+    lower.includes('পেন কাৰ্ড আপডেট');
+
+  if (hasAccountFreezePhishing) {
     indicators.push({
       id: 'pattern-kyc-phishing',
       category: 'Impersonation',
       severity: 'critical',
       title: 'Account Suspension Threat & Credential Harvesting',
-      titleHi: 'डीमैट ब्लॉक की धमकी और व्यक्तिगत जानकारी चुराने का प्रयास',
-      description: 'Claims the user\'s Demat account is suspended and demands immediate KYC update via external link.',
+      titleHi: 'डीमैट/खाता ब्लॉक की धमकी और व्यक्तिगत जानकारी चुराने का प्रयास',
+      description: 'Claims the user\'s Demat or banking account is suspended and demands immediate KYC update via external link.',
       whyItMatters: 'Brokers never lock trading accounts via arbitrary SMS links with 2-hour deadlines. Official Re-KYC is performed directly within registered broker applications or through official depository portals.',
       whyItMattersHi: 'ब्रोकर कभी भी एसएमएस में अनजान लिंक भेजकर 2 घंटे में खाता फ्रीज करने की धमकी नहीं देते।'
     });
@@ -285,8 +294,12 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
       lower.includes('secure allocation wallet') ||
       lower.includes('upi id:') ||
       lower.includes('to personal upi') ||
-      /send\s*₹?\s*\d+/i.test(lower) ||
-      /transfer\s*₹?\s*\d+/i.test(lower) ||
+      lower.includes('send funds') ||
+      lower.includes('transfer funds') ||
+      lower.includes('personal account') ||
+      lower.includes('allocation pool') ||
+      /send\s*(?:funds|money|₹|rs)?\s*[\d,]+/i.test(lower) ||
+      /transfer\s*(?:funds|money|₹|rs)?\s*[\d,]+/i.test(lower) ||
       /pay\s*₹?\s*\d+/i.test(lower) ||
       lower.includes('transfer ₹') ||
       lower.includes('deposit via neft') ||
@@ -311,14 +324,16 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     lower.includes('like video') ||
     lower.includes('subscribe channel and earn') ||
     lower.includes('earn per like') ||
-    /per\s*like\s*₹?\s*\d+/i.test(lower) ||
-    /per\s*task\s*₹?\s*\d+/i.test(lower) ||
+    /per\s*like\s*(?:₹|rs)?\s*\d+/i.test(lower) ||
+    /per\s*task\s*(?:₹|rs)?\s*\d+/i.test(lower) ||
     lower.includes('prepaid task') ||
     lower.includes('merchant task') ||
     lower.includes('hotel review commission') ||
     lower.includes('google review task') ||
     lower.includes('part-time job earn') ||
     lower.includes('part time job earn') ||
+    (lower.includes('part time') && (lower.includes('youtube') || lower.includes('like'))) ||
+    lower.includes('youtube videos like') ||
     lower.includes('task completion bonus') ||
     lower.includes('telegram task') ||
     lower.includes('video like karke kamao') ||
@@ -383,6 +398,102 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
       description: 'An unknown person or social media stranger is soliciting funds or investment without regulatory credentials.',
       whyItMatters: 'Section 3 of the Banning of Unregulated Deposit Schemes Act, 2019 (BUDS Act) strictly prohibits any individual or unregistered entity from soliciting deposits or investments. Accepting or asking for money with promised returns without SEBI registration is a cognizable criminal offense.',
       whyItMattersHi: 'BUDS Act 2019 और सेबी नियमों के अनुसार किसी भी अनजान व्यक्ति द्वारा मुनाफ़े के नाम पर पैसे मांगना गैरकानूनी और संज्ञेय अपराध है। ऐसे लोग पैसे लेकर तुरंत संपर्क बंद कर देते हैं।'
+    });
+  }
+
+  // Pattern 11: Electricity Disconnection / Utility Coercive Extortion
+  const isElectricityDisconnection =
+    (lower.includes('electricity') || lower.includes('power') || lower.includes('bijli') || lower.includes('বিদ্যুৎ')) &&
+    (lower.includes('disconnect') || lower.includes('disconnected') || lower.includes('कट जाएगी') || lower.includes('unpaid bill') || lower.includes('call electricity officer'));
+
+  if (isElectricityDisconnection) {
+    indicators.push({
+      id: 'pattern-electricity-disconnection-scam',
+      category: 'Impersonation',
+      severity: 'critical',
+      title: 'Electricity Disconnection Coercive Threat Vector',
+      titleHi: 'बिजली कटने की फर्जी धमकी एवं साइबर ठगी',
+      description: 'Threatens immediate power disconnection over an alleged unpaid bill to induce panic and coerce phone calls to unauthorized scam numbers.',
+      whyItMatters: 'State electricity discoms NEVER send personal SMS threatening same-night disconnection with personal 10-digit mobile numbers. Official bill dues are only payable via verified BBPS / discom portals.',
+      whyItMattersHi: 'बिजली विभाग कभी भी रात 9:30 बजे बिजली काटने की धमकी देकर किसी मोबाइल नंबर पर कॉल करने का मैसेज नहीं भेजता।'
+    });
+  }
+
+  // Pattern 12: Digital Arrest & Narcotics / Courier Extortion
+  const isDigitalArrestScam =
+    lower.includes('digital arrest') ||
+    lower.includes('illegal passports') ||
+    lower.includes('drugs parcel') ||
+    lower.includes('parcel sent in your name') ||
+    lower.includes('customs clearance fee') ||
+    lower.includes('police arrest warrant') ||
+    lower.includes('cbi arrest') ||
+    (lower.includes('skype') && lower.includes('jail'));
+
+  if (isDigitalArrestScam) {
+    indicators.push({
+      id: 'pattern-digital-arrest-extortion',
+      category: 'Impersonation',
+      severity: 'critical',
+      title: 'Digital Arrest & Law Enforcement Extortion Vector',
+      titleHi: 'डिजिटल अरेस्ट एवं पुलिस/कस्टम्स के नाम पर ब्लैकमेल',
+      description: 'Falsely claims an intercepted parcel containing contraband or illegal documents, intimidating victims with a "Digital Arrest" to extort funds via Skype/video calls.',
+      whyItMatters: 'Government of India, MHA, and CERT-In have repeatedly clarified that "Digital Arrest" does not exist under Indian law. Police, CBI, and Customs NEVER arrest or interrogate citizens over Skype or demand money to clear cases.',
+      whyItMattersHi: 'भारतीय कानून में "डिजिटल अरेस्ट" जैसा कोई प्रावधान नहीं है। पुलिस या कस्टम्स कभी स्काइप पर गिरफ्तारी या पैसे की मांग नहीं करते।'
+    });
+  }
+
+  // Pattern 13: Instant Loan Advance Processing Fee Scam
+  const isFakeLoanScam =
+    (lower.includes('loan') || lower.includes('personal loan')) &&
+    (lower.includes('without cibil') || lower.includes('no cibil') || lower.includes('processing charge') || lower.includes('file processing') || lower.includes('processing fee to disburse'));
+
+  if (isFakeLoanScam) {
+    indicators.push({
+      id: 'pattern-fake-loan-processing-scam',
+      category: 'Withdrawal',
+      severity: 'critical',
+      title: 'Fake Instant Loan & Advance Processing Fee Trap',
+      titleHi: 'बिना सिबिल लोन का झांसा एवं फाइल चार्ज की ठगी',
+      description: 'Promises large collateral-free personal loans without credit checks and demands upfront file processing or disbursement fees.',
+      whyItMatters: 'Legitimate RBI-registered banks and NBFCs NEVER ask borrowers to pay processing charges upfront via UPI or personal accounts before loan sanction. They always deduct processing charges from the disbursed amount.',
+      whyItMattersHi: 'आरबीआई-पंजीकृत बैंक कभी भी लोन देने से पहले यूपीआई पर फाइल चार्ज या अग्रिम फीस नहीं मांगते।'
+    });
+  }
+
+  // Pattern 14: Work From Home Advance Registration Fee Scam
+  const isJobRegistrationScam =
+    (lower.includes('typing work') || lower.includes('simple typing') || lower.includes('work from home') || lower.includes('part time online job')) &&
+    (lower.includes('registration fee') || lower.includes('registration fee rs') || lower.includes('fee rs 499') || lower.includes('form filling fee'));
+
+  if (isJobRegistrationScam) {
+    indicators.push({
+      id: 'pattern-advance-fee-job-scam',
+      category: 'Withdrawal',
+      severity: 'critical',
+      title: 'Work From Home / Typing Job Registration Fee Fraud',
+      titleHi: 'घर बैठे टाइपिंग जॉब के नाम पर रजिस्ट्रेशन फीस की ठगी',
+      description: 'Lures job seekers with simple work-from-home typing tasks and collects non-refundable registration fees with no actual employment provided.',
+      whyItMatters: 'Genuine employers NEVER charge job applicants a "registration fee" or "software security fee" to start work. Any job asking for money upfront is fraudulent.',
+      whyItMattersHi: 'असली कंपनियां काम देने के बदले कभी भी रजिस्ट्रेशन फीस या एडवांस पैसे नहीं मांगतीं।'
+    });
+  }
+
+  // Pattern 15: Lottery & Prize Winner / KBC Fraud Vector
+  const isLotteryScam =
+    (lower.includes('won rs') || lower.includes('kbc lottery') || lower.includes('lottery prize') || lower.includes('won in kbc') || lower.includes('congratulations! you won')) &&
+    (lower.includes('claim contact') || lower.includes('whatsapp manager') || lower.includes('lottery') || lower.includes('prize'));
+
+  if (isLotteryScam) {
+    indicators.push({
+      id: 'pattern-lottery-prize-scam',
+      category: 'Withdrawal',
+      severity: 'critical',
+      title: 'Fake Lottery / KBC Lucky Draw Extortion Vector',
+      titleHi: 'फर्जी लॉटरी / केबीसी लकी ड्रॉ इनाम का झांसा',
+      description: 'Claims the recipient has won a massive lottery or game show cash prize to lure them into contacting a WhatsApp number and paying advance clearance taxes.',
+      whyItMatters: 'No legitimate lottery or televised game show awards prizes to random phone numbers without entry. Demanding processing fees or taxes to release lottery winnings is illegal advance-fee fraud.',
+      whyItMattersHi: 'केबीसी या कोई भी कंपनी बिना भाग लिए कभी लॉटरी नहीं देती। इनाम का झांसा देकर रजिस्ट्रेशन फीस मांगना 100% फ्रॉड है।'
     });
   }
 

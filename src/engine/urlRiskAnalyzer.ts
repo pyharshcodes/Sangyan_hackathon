@@ -95,7 +95,10 @@ export function classifyUrlType(
     lowerHost === 'cdslindia.com' ||
     lowerHost.endsWith('.cdslindia.com') ||
     lowerHost.includes('incometax.gov.in') ||
-    lowerHost.includes('cybercrime.gov.in');
+    lowerHost.includes('cybercrime.gov.in') ||
+    lowerHost.endsWith('.sbi') ||
+    lowerHost === 'sbi.co.in' ||
+    lowerHost.endsWith('.sbi.co.in');
 
   const isEdu =
     lowerHost.endsWith('.ac.in') ||
@@ -332,7 +335,10 @@ export function analyzeUrlRisk(
     hostname.endsWith('.ac.in') ||
     hostname.endsWith('.edu.in') ||
     hostname.endsWith('.edu') ||
-    hostname.endsWith('.gov');
+    hostname.endsWith('.gov') ||
+    hostname.endsWith('.sbi') ||
+    hostname === 'sbi.co.in' ||
+    hostname.endsWith('.sbi.co.in');
 
   // 3. Look-alike detection against reputable brands
   const brandKeywords = [
@@ -344,7 +350,15 @@ export function analyzeUrlRisk(
     { key: 'nsdl', brand: 'NSDL (Depository)' },
     { key: 'cdsl', brand: 'CDSL (Depository)' },
     { key: 'icicidirect', brand: 'ICICI Direct' },
-    { key: 'hdfcsec', brand: 'HDFC Securities' }
+    { key: 'hdfcsec', brand: 'HDFC Securities' },
+    { key: 'sbi', brand: 'State Bank of India (SBI)' },
+    { key: 'yono', brand: 'SBI YONO' },
+    { key: 'hdfc', brand: 'HDFC Bank' },
+    { key: 'icici', brand: 'ICICI Bank' },
+    { key: 'axis', brand: 'Axis Bank' },
+    { key: 'pnb', brand: 'Punjab National Bank' },
+    { key: 'kotak', brand: 'Kotak Mahindra Bank' },
+    { key: 'paytm', brand: 'Paytm' }
   ];
 
   let isLookalike = false;
@@ -361,9 +375,15 @@ export function analyzeUrlRisk(
   // 4. Suspicious TLD check
   const suspiciousTld = SUSPICIOUS_TLDS.some(tld => hostname.endsWith(tld));
 
-  // 5. URL Shorteners
+  // 5. URL Shorteners with financial / scam context
   const shorteners = ['bit.ly', 'tinyurl.com', 'is.gd', 'cutt.ly', 't.co', 'ow.ly', 'rb.gy', 'shorturl.at'];
   const isShortener = shorteners.some(s => hostname === s || hostname.endsWith(`.${s}`));
+  const hasShortenerScamIntent = isShortener && /(ipo|sme|vip|trade|invest|profit|allocation|crypto|gain|return|scheme|pool|bonus)/i.test(fullText);
+
+  // 5b. Free Hosting / Web App Phishing Vector (firebaseapp.com, web.app, etc.)
+  const freeHostingProviders = ['firebaseapp.com', 'web.app', 'pages.dev', 'vercel.app', 'glitch.me', 'ngrok.io', 'netlify.app', '000webhostapp.com'];
+  const isFreeHosting = freeHostingProviders.some(f => hostname.endsWith(f));
+  const hasFreeHostingPhishing = isFreeHosting && /(sbi|yono|hdfc|icici|axis|pnb|bank|kyc|pan|demat|reward|point|claim|login|netbanking)/i.test(fullText);
 
   // 6. Excessive subdomains
   const domainParts = hostname.split('.');
@@ -560,8 +580,11 @@ export function analyzeUrlRisk(
     isLookalike ||
     hasGuaranteedReturn ||
     hasPaymentRequest ||
+    hasFreeHostingPhishing ||
+    hasShortenerScamIntent ||
     (hasCredentialPhishing && !verifiedContent) ||
     (hasSuspiciousDomainKeywords && !verifiedContent) ||
+    (suspiciousTld && (financialRelevance === 'YES' || hasCredentialPhishing || isLookalike)) ||
     (hasSuspiciousPathKeywords && !verifiedContent && (hasUrgency || financialRelevance === 'YES')) ||
     (hasUrgency && (urlType === 'FINANCIAL/INVESTMENT' || hasVipGroupClaim) && !verifiedContent);
 
@@ -569,7 +592,17 @@ export function analyzeUrlRisk(
     riskLevel = 'High';
     confidence = 'HIGH';
 
-    if (isLookalike) {
+    if (hasFreeHostingPhishing) {
+      explanation = `The link is hosted on a free subdomain (${hostname}) imitating a regulated banking or financial institution. Regulated institutions never use free third-party app hosting for customer logins or reward claims.`;
+      explanationHi = `यह लिंक किसी बैंक या वित्तीय संस्था की नकल करने वाले मुफ्त सबडोमेन (${hostname}) पर होस्ट किया गया है। बैंक कभी मुफ्त ऐप होस्टिंग पर लॉगिन या रिवॉर्ड पेज नहीं चलाते।`;
+      recommendedAction = `DO NOT open this link or enter banking credentials. Report this phishing attack immediately.`;
+      recommendedActionHi = `इस लिंक को न खोलें। तुरंत 1930 पर या बैंक को सूचित करें।`;
+    } else if (hasShortenerScamIntent) {
+      explanation = `The link is an obfuscated short URL concealing an unregistered investment or trading destination. Shortened links are frequently used by illicit syndicates to bypass domain security filters.`;
+      explanationHi = `यह लिंक एक छोटा (Shortened) यूआरएल है जो अनधिकृत निवेश या ट्रेडिंग ग्रुप के असली पते को छुपाता है।`;
+      recommendedAction = `DO NOT click this shortened link. Never transfer funds or join private trading schemes through masked URLs.`;
+      recommendedActionHi = `इस छोटे लिंक पर क्लिक न करें।`;
+    } else if (isLookalike) {
       explanation = `The link uses a deceptive lookalike domain attempting to impersonate ${targetBrand}. It is not hosted on the official registered domain.`;
       explanationHi = `यह लिंक असली संस्था (${targetBrand}) की नकल करने वाला फर्जी लुक-एलाइक डोमेन है। यह सेबी-पंजीकृत आधिकारिक पोर्टल नहीं है।`;
       recommendedAction = `DO NOT open this link or enter your login, trading PIN, or Aadhaar credentials. Report this phishing site immediately.`;

@@ -404,6 +404,33 @@ export function runSangyanAnalysis(
         'यह आपका बैंक स्टेटमेंट है। इसमें आपके लेन-देन का विवरण है। संज्ञान कवच आपके डेटा को कभी स्टोर नहीं करता। यह कोई बाहरी वित्तीय धोखाधड़ी या पोंजी स्कीम नहीं है।';
       hindiAnalogy =
         'जैसे घर की डायरी में खर्च का हिसाब लिखा हो, वैसे ही यह आपका निजी हिसाब है, कोई बाहरी ठगी नहीं।';
+    } else if (classificationReport.documentContentType === 'MEDICAL_DOCUMENT') {
+      whyItMattersSummary =
+        'This is a medical document or doctor prescription. It contains zero financial claims, investment solicitations, or cyber fraud.';
+      whyItMattersSummaryHi =
+        'यह एक डॉक्टरी पर्चा या स्वास्थ्य संबंधी दस्तावेज़ है। इसमें कोई वित्तीय निवेश या शेयर बाजार से जुड़ी धोखाधड़ी नहीं है।';
+      hindiExplanation =
+        'यह आपका मेडिकल प्रिस्क्रिप्शन है। संज्ञान कवच केवल वित्तीय और निवेश संबंधी घोटालों की जांच करता है। इस दस्तावेज़ में कोई आर्थिक जोखिम नहीं है।';
+      hindiAnalogy =
+        'जैसे डॉक्टर का पर्चा स्वास्थ्य सुधार के लिए होता है, वैसे ही इसमें कोई वित्तीय ठगी नहीं है।';
+    } else if (classificationReport.documentContentType === 'RECEIPT_DOCUMENT') {
+      whyItMattersSummary =
+        'This is a routine retail, grocery, or merchant purchase receipt. It contains zero investment solicitations or financial fraud schemes.';
+      whyItMattersSummaryHi =
+        'यह किराने या रिटेल खरीदारी की सामान्य रसीद है। इसमें कोई निवेश या धोखाधड़ी का जोखिम नहीं है।';
+      hindiExplanation =
+        'यह आपकी रोजमर्रा की खरीदारी की रसीद या बिल है। इसमें कोई पोंजी स्कीम या फर्जी निवेश का दावा नहीं है।';
+      hindiAnalogy =
+        'जैसे सब्ज़ी या किराने की रसीद एक सामान्य घरेलू हिसाब है, वैसे ही यह पूरी तरह सुरक्षित है।';
+    } else if (classificationReport.documentContentType === 'UTILITY_BILL') {
+      whyItMattersSummary =
+        'This is a routine utility bill notification (electricity/water). It contains standard billing references and official payment channels (BBPS).';
+      whyItMattersSummaryHi =
+        'यह सामान्य बिजली या उपयोगिता बिल का आधिकारिक संदेश है। इसमें अधिकृत भुगतान माध्यमों (BBPS) का उल्लेख है।';
+      hindiExplanation =
+        'यह आपका नियमित उपयोगिता बिल है। इसमें कोई फर्जी पोंजी स्कीम या साइबर ठगी नहीं है। हमेशा केवल आधिकारिक बिजली विभाग के पोर्टल या BBPS से ही भुगतान करें।';
+      hindiAnalogy =
+        'जैसे घर का बिजली बिल आधिकारिक माध्यम से भरा जाता है, वैसे ही यह सामान्य बिल सूचना है।';
     } else {
       whyItMattersSummary =
         'The inspected content does not contain any financial, investment, or market-related claims. No financial risk is present.';
