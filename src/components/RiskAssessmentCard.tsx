@@ -224,6 +224,19 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({
 
             {/* Badges Row */}
             <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+              {result.fraudTaxonomy && (
+                <span className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border font-mono ${
+                  result.fraudTaxonomy === 'BENIGN'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : result.fraudTaxonomy === 'SUSPICIOUS'
+                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                    : result.fraudTaxonomy === 'UNCERTAIN'
+                    ? 'bg-sky-50 text-sky-800 border-sky-300'
+                    : 'bg-rose-50 text-rose-800 border-rose-300'
+                }`}>
+                  Taxonomy: {result.fraudTaxonomy}
+                </span>
+              )}
               {result.urlClassification && (
                 <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 font-mono">
                   {result.urlClassification}
@@ -234,17 +247,17 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({
                   {result.documentContentType.replace(/_/g, ' ')}
                 </span>
               )}
-              {result.financialRelevance && (
+              {(result.financialRelevanceLevel || result.financialRelevance) && (
                 <span
                   className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border font-mono ${
-                    result.financialRelevance === 'NO'
+                    (result.financialRelevanceLevel === 'NONE' || result.financialRelevance === 'NO')
                       ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                      : result.financialRelevance === 'YES'
+                      : (result.financialRelevanceLevel === 'HIGH' || result.financialRelevance === 'YES')
                       ? 'bg-blue-50 text-blue-800 border-blue-200'
                       : 'bg-amber-50 text-amber-800 border-amber-200'
                   }`}
                 >
-                  Relevance: {result.financialRelevance}
+                  Financial Scope: {result.financialRelevanceLevel || result.financialRelevance}
                 </span>
               )}
             </div>
@@ -370,6 +383,68 @@ export const RiskAssessmentCard: React.FC<RiskAssessmentCardProps> = ({
             <p className="text-slate-600">
               {lang === 'hi' ? result.semanticArchetype.modusOperandiHi : result.semanticArchetype.modusOperandi}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Evidence-First Calibrated Reasoning Panel */}
+      {((result.negativeEvidence && result.negativeEvidence.length > 0) ||
+        (result.positiveEvidence && result.positiveEvidence.length > 0)) && (
+        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-slate-900 flex items-center space-x-1.5 font-mono uppercase tracking-wider text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Evidence-First Risk Calibration Engine</span>
+            </span>
+            {result.requestedAction && (
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                Action: {result.requestedAction}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Negative Evidence / Mitigating Safety Factors */}
+            {result.negativeEvidence && result.negativeEvidence.length > 0 && (
+              <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 space-y-1.5">
+                <div className="text-[11px] font-bold text-emerald-900 flex items-center space-x-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    {lang === 'hi'
+                      ? 'सुरक्षा संकेत व शमन कारक (नकारात्मक साक्ष्य)'
+                      : 'Safety Signals & Mitigating Factors (Negative Evidence)'}
+                  </span>
+                </div>
+                <ul className="space-y-1 pl-4 list-disc text-emerald-800 text-[11px] leading-relaxed">
+                  {(lang === 'hi' && result.negativeEvidenceHi ? result.negativeEvidenceHi : result.negativeEvidence).map(
+                    (signal, idx) => (
+                      <li key={idx}>{signal}</li>
+                    )
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {/* Positive Fraud Evidence */}
+            {result.positiveEvidence && result.positiveEvidence.length > 0 && (
+              <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200/80 space-y-1.5">
+                <div className="text-[11px] font-bold text-rose-900 flex items-center space-x-1">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>
+                    {lang === 'hi'
+                      ? 'सक्रिय धोखाधड़ी व भ्रामक संकेत (सकारात्मक साक्ष्य)'
+                      : 'Deception Markers & Active Risk (Positive Evidence)'}
+                  </span>
+                </div>
+                <ul className="space-y-1 pl-4 list-disc text-rose-800 text-[11px] leading-relaxed">
+                  {(lang === 'hi' && result.positiveEvidenceHi ? result.positiveEvidenceHi : result.positiveEvidence).map(
+                    (signal, idx) => (
+                      <li key={idx}>{signal}</li>
+                    )
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       )}

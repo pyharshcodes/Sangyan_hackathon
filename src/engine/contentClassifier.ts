@@ -150,9 +150,18 @@ export function classifyDocumentContentType(
     'salary credit',
     'grocery upi debit',
     'savings account statement',
-    'current account statement'
+    'current account statement',
+    'monthly salary',
+    'sbi kehta hai',
+    'rbi kehta hai'
   ];
-  const isBankDocText = bankDocKeywords.some(k => lower.includes(k));
+  const isRoutineBankAlert =
+    /(?:credited with|credited to your a\/c|salary credited|debited from a\/c|otp for transaction|auto-debit)/i.test(lower) &&
+    /(?:avl bal|available balance|sbi kehta hai|never share otp|do not share otp|valid for \d+ min)/i.test(lower) &&
+    !lower.includes('blocked in 2 hours') &&
+    !lower.includes('click http');
+
+  const isBankDocText = bankDocKeywords.some(k => lower.includes(k)) || isRoutineBankAlert;
   const isBankDocFile =
     lowerFile.includes('bank_statement') ||
     lowerFile.includes('passbook') ||
@@ -202,18 +211,36 @@ export function classifyDocumentContentType(
     'grocery bill',
     'retail bill',
     'cash memo',
-    'invoice bill'
+    'invoice bill',
+    'out for delivery',
+    'order delivered in',
+    'order is confirmed'
   ];
   const hasFoodItems = ['rice', 'oil', 'milk', 'bread', 'butter', 'sugar', 'dal', 'tea', 'wheat', 'vegetables'].some(k => lower.includes(k));
-  if ((receiptKeywords.some(k => lower.includes(k)) || (hasFoodItems && lower.includes('bill'))) && !lower.includes('invest') && !lower.includes('guaranteed')) {
+  const isDeliveryNotice = /(?:out for delivery|order #\d+|delivered successfully|delivered in \d+ mins)/i.test(lower) && /(?:flipkart|amazon|swiggy|zomato|blinkit|zepto|courier|delivery agent)/i.test(lower);
+
+  if ((receiptKeywords.some(k => lower.includes(k)) || isDeliveryNotice || (hasFoodItems && lower.includes('bill'))) && !lower.includes('invest') && !lower.includes('guaranteed') && !lower.includes('clearance fee')) {
     return 'RECEIPT_DOCUMENT';
   }
 
-  // 7. Legitimate Utility Bill Reminder (No disconnection extortion)
+  // 7. Legitimate Utility & Service Bill Reminder (No disconnection extortion)
   const isUtilityBill =
-    (lower.includes('electricity bill') || lower.includes('water bill') || lower.includes('gas bill')) &&
-    (lower.includes('ca ') || lower.includes('ca no') || lower.includes('bbps') || lower.includes('due date')) &&
-    !lower.includes('disconnected') && !lower.includes('disconnect') && !lower.includes('call electricity officer');
+    (lower.includes('electricity bill') ||
+      lower.includes('water bill') ||
+      lower.includes('gas bill') ||
+      lower.includes('power bill') ||
+      lower.includes('broadband bill') ||
+      lower.includes('piped gas') ||
+      lower.includes('bijli bill') ||
+      lower.includes('बिजली बिल') ||
+      lower.includes('utility bill')) &&
+    !lower.includes('disconnected tonight') &&
+    !lower.includes('disconnected in ') &&
+    !lower.includes('power cut') &&
+    !lower.includes('call electricity officer') &&
+    !lower.includes('officer helpline') &&
+    !lower.includes('immediate disconnect') &&
+    !lower.includes('urgent disconnect');
 
   if (isUtilityBill) {
     return 'UTILITY_BILL';
@@ -222,6 +249,10 @@ export function classifyDocumentContentType(
   // 5. Legitimate Educational Awareness
   const isEducationalContent =
     lower.includes('investor awareness') ||
+    lower.includes('sebi advisory') ||
+    lower.includes('beware of unsolicited') ||
+    lower.includes('sebi does not guarantee') ||
+    lower.includes('does not guarantee returns') ||
     lower.includes('scheme information document') ||
     (lower.includes('market risks') && lower.includes('carefully before investing')) ||
     lower.includes('financial literacy') ||
@@ -235,7 +266,15 @@ export function classifyDocumentContentType(
     lower.includes('भारतीय प्रतिभूति और विनिमय बोर्ड') ||
     (lower.includes('securities and exchange board of india') && lower.includes('sebi.gov.in'));
 
-  if (isEducationalContent && !lower.includes('guaranteed 300%') && !lower.includes('300% guaranteed') && !lower.includes('vip group') && !lower.includes('paisa double')) {
+  if (
+    isEducationalContent &&
+    !lower.includes('forged') &&
+    !lower.includes('assured') &&
+    !lower.includes('guaranteed') &&
+    !lower.includes('vip') &&
+    !lower.includes('paisa double') &&
+    !lower.includes('double money')
+  ) {
     return 'INVESTMENT_CONTENT';
   }
 
@@ -245,6 +284,10 @@ export function classifyDocumentContentType(
     lower.includes('do not transfer') ||
     lower.includes('avoid transferring') ||
     lower.includes('investor awareness') ||
+    lower.includes('sebi advisory') ||
+    lower.includes('beware of unsolicited') ||
+    lower.includes('sebi does not guarantee') ||
+    lower.includes('does not guarantee') ||
     lower.includes('be a smart investor') ||
     lower.includes('investor education') ||
     lower.includes('be careful of unsolicited tips') ||
@@ -580,7 +623,10 @@ export function determineFinancialRelevance(
       /\blottery\b/i,
       /\bkbc\b/i,
       /\belectricity\s+officer\b/i,
-      /\bpower\s+will\s+be\s+disconnected\b/i
+      /\bpower\s+will\s+be\s+disconnected\b/i,
+      /डीमैट|ट्रेडिंग|शेयर|निवेश|मुनाफा|ब्रोकर|पैन कार्ड|खाता बंद|पैसे डबल|पैसा डबल/i,
+      /ডিম্যাট|ট্রেডিং|শেয়ার|বিনিয়োগ|মুনাফা|টাকা দুগুণ/i,
+      /ডিমেট|ট্ৰেডিং|বিনিয়োগ|টকা দুগুণ/i
     ];
     if (financialWordRegexes.some(r => r.test(t))) return true;
 
@@ -737,10 +783,25 @@ export function classifyContent(
     'বিনীযোগ শিক্ষা'
   ];
 
-  const educationalMatchCount = educationalKeywords.filter(k => lower.includes(k)).length;
+  const hasDeceptiveHallmarks =
+    lower.includes('forged') ||
+    lower.includes('alpha wealth') ||
+    lower.includes('assured return') ||
+    lower.includes('guaranteed return') ||
+    lower.includes('double money') ||
+    lower.includes('पैसा डबल') ||
+    lower.includes('पैसे डबल') ||
+    lower.includes('रुपये डबल') ||
+    lower.includes('vip fund') ||
+    lower.includes('vip group');
+
+  const educationalMatches = educationalKeywords.filter(k => lower.includes(k));
+  const educationalMatchCount = educationalMatches.length;
   const isEducational =
     (educationalMatchCount >= 1 || isOfficialEducationalNotice) &&
-    (!hasCritical || isOfficialEducationalNotice);
+    (!hasCritical || isOfficialEducationalNotice) &&
+    highCount === 0 &&
+    !hasDeceptiveHallmarks;
 
   const isAuthenticBankingAlert =
     (lower.includes('otp for login') || lower.includes('your otp for') || lower.includes('one time password') || (lower.includes('credited to your a/c') && lower.includes('salary credit'))) &&

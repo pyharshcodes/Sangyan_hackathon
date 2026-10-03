@@ -41,10 +41,17 @@ export function evaluateGuardrailQuery(input: string): GuardrailCheckResult {
     lower.includes('join our') ||
     lower.includes('join vip') ||
     lower.includes('सीटें बची') ||
-    lower.includes('slots remaining') ||
     lower.includes('पक्का मुनाफा') ||
     lower.includes('100% गारंटी') ||
     lower.includes('paisa double') ||
+    lower.includes('पैसा डबल') ||
+    lower.includes('पैसे डबल') ||
+    lower.includes('रुपये डबल') ||
+    lower.includes('डबल स्कीम') ||
+    lower.includes('लगाएं') ||
+    lower.includes('वापस पाएं') ||
+    lower.includes('টাকা দুগুণ') ||
+    lower.includes('টকা দুগুণ') ||
     lower.includes('दो महीने में डबल') ||
     lower.includes('per like') ||
     lower.includes('per task') ||
@@ -106,9 +113,9 @@ export function evaluateGuardrailQuery(input: string): GuardrailCheckResult {
     };
   }
 
-  // 3. Guaranteed Investment Requests
+  // 3. Guaranteed Investment Requests (User actively seeking guaranteed schemes)
   const guaranteeDemandEnglish = /\b(give\s+me\s+(a\s+)?guaranteed\s+(investment|return|profit)|fixed\s+return\s+scheme|100%\s+safe\s+investment\s+with\s+high\s+return)\b/i;
-  const guaranteeDemandIndic = /(निश्चित\s*मुनाफे\s*वाली\s*(योजना|स्कीम)|गंभीर\s*मुनाफ़ा\s*की\s*गारंटी|गारंटीड\s*(रिटर्न|मुनाफा)|निশ্চিত\s*লাভের\s*স্কিম|निশ্চিত\s*লাভৰ\s*আঁচনি)/iu;
+  const guaranteeDemandIndic = /(?:मुझे|हमें|कोई|क्या)\s+.*(?:गारंटीड|निश्चित)\s*(?:रिटर्न|मुनाफा|योजना|स्कीम)|(?:गारंटीड|निश्चित)\s*(?:रिटर्न|मुनाफा)\s*(?:बताएं|बताओ|दीजिए|दीजिये|चाहिए|मिलेगा|दिलाओ)|निश्चित\s*मुनाफे\s*वाली\s*(?:योजना|स्कीम)\s*(?:बताओ|दीजिए|चाहिए)|(?:কোন|কি)\s+.*নিশ্চিত\s*লাভ/iu;
 
   if (guaranteeDemandEnglish.test(lower) || guaranteeDemandIndic.test(lower)) {
     return {

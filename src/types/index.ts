@@ -33,6 +33,40 @@ export type DocumentContentType =
 
 export type FinancialRelevance = 'YES' | 'NO' | 'UNCERTAIN';
 
+export type FraudTaxonomy =
+  | 'BENIGN'
+  | 'SUSPICIOUS'
+  | 'HIGH_RISK_FRAUD'
+  | 'CRITICAL_SCAM'
+  | 'UNCERTAIN';
+
+export type FraudRisk =
+  | 'BENIGN'
+  | 'LOW'
+  | 'SUSPICIOUS'
+  | 'HIGH'
+  | 'CRITICAL'
+  | 'UNCERTAIN';
+
+export type FinancialRelevanceLevel =
+  | 'NONE'
+  | 'LOW'
+  | 'MEDIUM'
+  | 'HIGH';
+
+export interface FeatureGroupBreakdown {
+  impersonation: string[];
+  credentialTheft: string[];
+  paymentManipulation: string[];
+  urgencyPressure: string[];
+  rewardBait: string[];
+  investmentScam: string[];
+  domainRisk: string[];
+  socialEngineering: string[];
+  contextualEvidence: string[];
+}
+
+
 export interface ExtractedClaims {
   financialClaims: string[];
   organizations: string[];
@@ -220,6 +254,18 @@ export interface AnalysisResult {
     modelUsed: string;
     latencyMs?: number;
   };
+
+  // Evidence-First Engine Extensions (Production Resilience)
+  fraudTaxonomy?: FraudTaxonomy;
+  fraudRisk?: FraudRisk;
+  financialRelevanceLevel?: FinancialRelevanceLevel;
+  negativeEvidence?: string[];
+  negativeEvidenceHi?: string[];
+  positiveEvidence?: string[];
+  positiveEvidenceHi?: string[];
+  requestedAction?: string;
+  impersonationDetected?: boolean;
+  featureGroupBreakdown?: FeatureGroupBreakdown;
 }
 
 export interface DemoPreset {

@@ -20,6 +20,11 @@ export interface GeminiAiResponse {
   modelUsed: string;
   latencyMs: number;
   riskLevel?: 'Critical' | 'High' | 'Needs Verification' | 'Low';
+  classification?: 'BENIGN' | 'SUSPICIOUS' | 'HIGH_RISK_FRAUD' | 'CRITICAL_SCAM' | 'UNCERTAIN';
+  risk_score?: number;
+  evidence_for_fraud?: string[];
+  evidence_against_fraud?: string[];
+  requested_action?: string;
 }
 
 /**
@@ -335,6 +340,52 @@ export function synthesizeOfflineGeminiResponse(
       confidenceScore: 0,
       modelUsed: 'Google Gemini 1.5 Flash (Edge Guardrail Mode)',
       riskLevel: 'Low',
+      classification: 'BENIGN',
+      risk_score: 5,
+      evidence_for_fraud: [],
+      evidence_against_fraud: [
+        'Legitimate regulatory advisory published under SEBI guidelines',
+        'Cautions citizens against fraud rather than soliciting investments',
+        'No link, no payment request, no credential harvesting'
+      ],
+      requested_action: 'Read and follow standard SEBI investor protection guidance',
+      latencyMs: 120
+    };
+  }
+
+  // Legitimate Utility / Service Bill Notice (No Extortion)
+  const isUtilityNotice =
+    (lower.includes('electricity bill') ||
+      lower.includes('water bill') ||
+      lower.includes('gas bill') ||
+      lower.includes('power bill') ||
+      lower.includes('broadband bill') ||
+      lower.includes('piped gas') ||
+      lower.includes('utility bill')) &&
+    !lower.includes('disconnected tonight') &&
+    !lower.includes('disconnected in ') &&
+    !lower.includes('power cut') &&
+    !lower.includes('call electricity officer');
+
+  if (isUtilityNotice) {
+    return {
+      aiAnalysis: 'Legitimate utility billing notification. The message communicates a routine scheduled payment and directs the recipient to settle through official provider channels without coercive extortion.',
+      aiExplanationHi: 'यह बिजली या अन्य उपयोगिता सेवा का वैध बिल है। इसमें आधिकारिक ऐप या वेबसाइट से भुगतान की सलाह है, कोई धोखाधड़ी नहीं है।',
+      manipulationTriggers: [],
+      regulatoryViolationNotes: 'Legitimate utility billing notification. No securities or financial fraud indicators.',
+      confidenceScore: 0,
+      modelUsed: 'Google Gemini 1.5 Flash (Edge Guardrail Mode)',
+      riskLevel: 'Low',
+      classification: 'BENIGN',
+      risk_score: 5,
+      evidence_for_fraud: [],
+      evidence_against_fraud: [
+        'Advises payment strictly through official provider app or website',
+        'No suspicious external link or shortened URL',
+        'No threat of immediate power cut or extortion',
+        'No OTP or banking credential solicitation'
+      ],
+      requested_action: 'Pay routine utility bill through official provider app/website',
       latencyMs: 120
     };
   }
@@ -366,7 +417,9 @@ export function synthesizeOfflineGeminiResponse(
     manipulationTriggers = ['Sunk Cost Trap', 'Micro-Reward Grooming', 'Artificial Prepaid Progression'];
     regulatoryViolationNotes = 'Violation of Banning of Unregulated Deposit Schemes (BUDS) Act, 2019 and SEBI PFUTP Regulations.';
     riskLevel = 'Critical';
-  } else if (lower.includes('fee') || lower.includes('release') || lower.includes('tax') || lower.includes('withdr')) {
+  } else if (
+    /(?:withdrawal fee|clearance fee|release fee|tax before release|advance fee|deposit before withdrawal|unfreeze fee|निकासी शुल्क|एडवांस फीस)/i.test(lower)
+  ) {
     aiAnalysis = 'Advance-Fee Ransom trap. The syndicate displays simulated virtual profits and demands advance regulatory taxes or clearance fees to release funds. Regulated markets never charge advance private fees for capital redemption.';
     aiExplanationHi = 'नकली स्क्रीन पर लाखों का मुनाफा दिखाकर निकासी के लिए 20% टैक्स मांगना ठगी का पुराना तरीका है।';
     manipulationTriggers = ['Advance-Fee Ransom Trap', 'Phantom Profit Illusion', 'Extortionate Clearance Demand'];
@@ -386,14 +439,29 @@ export function synthesizeOfflineGeminiResponse(
     riskLevel = 'Needs Verification';
   }
 
+  const finalRiskLevel: 'Critical' | 'High' | 'Needs Verification' | 'Low' = riskLevel;
+
+  const defaultClassification =
+    finalRiskLevel === 'Critical'
+      ? 'CRITICAL_SCAM'
+      : (finalRiskLevel as string) === 'High'
+      ? 'HIGH_RISK_FRAUD'
+      : finalRiskLevel === 'Needs Verification'
+      ? 'UNCERTAIN'
+      : 'BENIGN';
+
   return {
     aiAnalysis,
     aiExplanationHi,
     manipulationTriggers,
     regulatoryViolationNotes,
-    confidenceScore: riskLevel === 'Critical' ? 95 : 30,
+    confidenceScore: finalRiskLevel === 'Critical' ? 95 : finalRiskLevel === 'Needs Verification' ? 30 : 0,
     modelUsed: 'Google Gemini 2.5 Flash (Edge Guardrail Mode)',
-    riskLevel,
+    riskLevel: finalRiskLevel,
+    classification: defaultClassification,
+    risk_score: finalRiskLevel === 'Critical' ? 92 : (finalRiskLevel as string) === 'High' ? 75 : finalRiskLevel === 'Needs Verification' ? 30 : 5,
+    evidence_for_fraud: manipulationTriggers,
+    evidence_against_fraud: (finalRiskLevel as string) === 'Low' ? ['No malicious indicators detected'] : [],
     latencyMs: 380
   };
 }
@@ -433,17 +501,25 @@ DETECTED SIGNALS BY DETERMINISTIC GUARDRAIL ENGINE:
 ${detectedSignals.join(', ')}
 
 EVALUATION RULES:
-- OBJECTIVITY: If the content is an innocent personal message, casual greeting, marksheet, receipt, photo, non-financial communication, or an OFFICIAL REGULATORY INVESTOR AWARENESS POSTER/ADVISORY (such as SEBI "Be a Smart Investor", "Understand. Verify. Invest Wisely", or official educational guidance), you MUST set "riskLevel": "Low", "confidenceScore": 0, "manipulationTriggers": [], and "regulatoryViolationNotes": "None (Legitimate Educational Advisory)". DO NOT flag scams where none exist!
-- ONLY flag "Critical" or "High" if there are actual financial scams (Ponzi schemes, guaranteed return promises, Demat KYC phishing, unverified VIP trading tips, advance fee extortion, fake loans, digital arrest, or impersonation of SEBI/RBI).
+- OBJECTIVITY & NEGATIVE EVIDENCE: If the content is an innocent personal message, routine utility bill (electricity, water, gas), e-commerce delivery notice, routine bank credit alert, casual greeting, marksheet, receipt, photo, non-financial communication, or an OFFICIAL REGULATORY INVESTOR AWARENESS POSTER/ADVISORY (such as SEBI "Be a Smart Investor", "Understand. Verify. Invest Wisely", or official educational guidance), you MUST set "classification": "BENIGN", "riskLevel": "Low", "risk_score": 5, "confidenceScore": 0, "manipulationTriggers": [], and list mitigating factors in "evidence_against_fraud". DO NOT flag scams where none exist!
+- URGENCY ALONE MUST NEVER BE ENOUGH FOR HIGH RISK.
+- ONLY flag "Critical" or "High" if there are actual active financial scams (Ponzi schemes, guaranteed return promises, Demat KYC phishing, unverified VIP trading tips, advance fee extortion, fake loans, digital arrest, or impersonation of SEBI/RBI).
 
 Respond ONLY in valid JSON with this exact structure:
 {
+  "classification": "BENIGN | SUSPICIOUS | HIGH_RISK_FRAUD | CRITICAL_SCAM | UNCERTAIN",
+  "risk_score": 0,
+  "confidenceScore": 0.95,
+  "severity": "LOW | MODERATE | HIGH | CRITICAL",
+  "fraud_type": ["Array of fraud categories detected, or empty []"],
+  "evidence_for_fraud": ["Array of positive scam indicators, or empty []"],
+  "evidence_against_fraud": ["Array of benign factors, official advice, absence of links/OTP, etc."],
+  "requested_action": "Description of the requested user action",
   "aiAnalysis": "A 2-3 sentence analytical explanation of the content.",
   "aiExplanationHi": "आसान हिंदी में 2-3 वाक्यों में स्थिति समझाइए।",
   "manipulationTriggers": ["Array of specific manipulation techniques used if any, or empty array [] if non-financial or safe"],
   "regulatoryViolationNotes": "Reference to regulations violated if fraud, or 'None' if non-financial or legitimate.",
-  "riskLevel": "Low | Needs Verification | High | Critical",
-  "confidenceScore": 0
+  "riskLevel": "Low | Needs Verification | High | Critical"
 }`;
 
   for (const model of modelsToAttempt) {
@@ -554,6 +630,11 @@ Respond ONLY in valid JSON with this exact structure:
         confidenceScore: typeof parsed.confidenceScore === 'number' ? parsed.confidenceScore : 0,
         modelUsed: displayModel,
         riskLevel: assignedRisk,
+        classification: parsed.classification || (assignedRisk === 'Critical' ? 'CRITICAL_SCAM' : assignedRisk === 'High' ? 'HIGH_RISK_FRAUD' : assignedRisk === 'Needs Verification' ? 'UNCERTAIN' : 'BENIGN'),
+        risk_score: typeof parsed.risk_score === 'number' ? parsed.risk_score : (assignedRisk === 'Critical' ? 90 : assignedRisk === 'High' ? 70 : assignedRisk === 'Needs Verification' ? 30 : 5),
+        evidence_for_fraud: Array.isArray(parsed.evidence_for_fraud) ? parsed.evidence_for_fraud : (Array.isArray(parsed.manipulationTriggers) ? parsed.manipulationTriggers : []),
+        evidence_against_fraud: Array.isArray(parsed.evidence_against_fraud) ? parsed.evidence_against_fraud : [],
+        requested_action: parsed.requested_action || '',
         latencyMs
       };
     } catch (err) {

@@ -15,6 +15,7 @@ import { classifyContent } from './contentClassifier';
 import { evaluateGuardrailQuery, GuardrailCheckResult } from './guardrailInterceptor';
 import { analyzeUrlRisk } from './urlRiskAnalyzer';
 import { classifySemanticArchetype } from './semanticIntentClassifier';
+import { evaluateEvidenceRiskEngine } from './evidenceRiskEngine';
 
 function createGuardrailRefusalResult(
   id: string,
@@ -104,7 +105,14 @@ function createGuardrailRefusalResult(
         stepHi: 'लंबी अवधि के लिए सट्टेबाजी के बजाय इंडेक्स फंड या अनुशासित एसआईपी पर विचार करें।',
         critical: false
       }
-    ]
+    ],
+    fraudTaxonomy: 'BENIGN',
+    fraudRisk: 'BENIGN',
+    financialRelevanceLevel: 'LOW',
+    negativeEvidence: ['Guardrail query handled safely without issuing financial advice'],
+    positiveEvidence: [],
+    requestedAction: 'General stock advisory query',
+    impersonationDetected: false
   };
 }
 
@@ -177,15 +185,21 @@ export function runSangyanAnalysis(
   const urgencyKeywords = ['within 2 hours', 'immediately', 'only 3 slots', 'only 2 slots', 'urgent alert', 'hurry'];
   extractedClaims.urgencyLanguage = urgencyKeywords.filter(k => text.toLowerCase().includes(k));
 
-  // Extract payment requests
-  if (text.includes('UPI') || text.includes('NEFT') || text.includes('₹') || /मांग|transfer|send|pay|টাকা/i.test(text)) {
-    const amountMatches = rawInput.match(/₹\s*[\d,]+/g) || [];
-    extractedClaims.paymentRequests = [...amountMatches];
+  // Extract payment requests (distinguishing actual fraudulent demands from routine prices/bills)
+  const hasPaymentDemandIntent =
+    /मांग\s*रहा|मांग\s*रहे|पैसे\s*मांग|रुपये\s*मांग|asking for money|send money to|transfer to upi|টাকা চাইছে|advance fee|clearance fee|release fee|unfreeze fee/i.test(rawInput) ||
+    sanitization.redactedCount.upiIds > 0 ||
+    /[\w.-]+@(okhdfcbank|okaxis|oksbi|okicici|paytm|ybl|ibl|upi)/i.test(rawInput);
+
+  if (hasPaymentDemandIntent) {
+    if (sanitization.redactedCount.upiIds > 0 || /[\w.-]+@(okhdfcbank|okaxis|oksbi|okicici|paytm|ybl|ibl|upi)/i.test(rawInput)) {
+      extractedClaims.paymentRequests.push('Direct UPI Transfer Demand (Address Redacted for Safety)');
+    }
     if (/मांग\s*रहा|मांग\s*रहे|पैसे\s*मांग|रुपये\s*मांग|asking for money|টাকা চাইছে/i.test(rawInput)) {
       extractedClaims.paymentRequests.push('पैसा/रुपये मांगने का संदेश (Informal Cash/Transfer Demand)');
     }
-    if (sanitization.redactedCount.upiIds > 0) {
-      extractedClaims.paymentRequests.push('Direct UPI Transfer (Address Redacted for Safety)');
+    if (/advance fee|clearance fee|release fee|processing fee|unfreeze fee/i.test(rawInput)) {
+      extractedClaims.paymentRequests.push('Advance Clearance / Ransom Fee Demand');
     }
   }
 
@@ -224,13 +238,26 @@ export function runSangyanAnalysis(
     inputType
   );
 
+  // Layer 6: Evidence-First Risk Engine Evaluation
+  const evidenceEngineResult = evaluateEvidenceRiskEngine({
+    rawText: rawInput,
+    sanitizedText: text,
+    documentContentType: classificationReport.documentContentType,
+    financialRelevance: classificationReport.financialRelevance,
+    detectedPatterns,
+    domainAnalyses,
+    entityVerifications,
+    inputType,
+    extractedClaims
+  });
+
   let activeDetectedPatterns = detectedPatterns;
   let heuristicScore = 0;
   let overallAssessment: RiskLevel = 'Low';
   let heuristicScoreDisclaimer =
     'This score is an automated heuristic risk estimate based on known deception patterns and public database syntax. It is NOT an official regulatory rating from SEBI or NSDL.';
 
-  // STEP 2 & 3: GATE SCORING BY FINANCIAL RELEVANCE & URL ANALYSIS
+  // STEP 2 & 3: GATE SCORING BY FINANCIAL RELEVANCE & URL ANALYSIS & EVIDENCE ENGINE
   if (inputType === 'url' && primaryUrlAnalysis) {
     overallAssessment = primaryUrlAnalysis.riskLevel || 'Low';
     if (overallAssessment === 'Critical') heuristicScore = 85;
@@ -254,7 +281,7 @@ export function runSangyanAnalysis(
         : 'Non-financial content detected. SANGYAN KAVACH evaluates financial fraud and deceptive market claims; this upload contains zero financial investment risk.';
   } else if (classificationReport.financialRelevance === 'UNCERTAIN' && !detectedPatterns.some(p => p.severity === 'critical' || p.severity === 'high')) {
     overallAssessment = 'Needs Verification';
-    heuristicScore = 20;
+    heuristicScore = Math.min(evidenceEngineResult.calibratedScore, 25);
     activeDetectedPatterns = detectedPatterns.filter(p => p.severity === 'low');
     heuristicScoreDisclaimer =
       'Ambiguous content detected with insufficient financial context. Independent regulatory corroboration is recommended.';
@@ -265,17 +292,15 @@ export function runSangyanAnalysis(
       overallAssessment = 'Low';
       activeDetectedPatterns = [];
     } else {
-      let score = 5;
+      let score = evidenceEngineResult.calibratedScore;
       const criticalCount = detectedPatterns.filter(p => p.severity === 'critical').length;
       const highCount = detectedPatterns.filter(p => p.severity === 'high').length;
-      score += criticalCount * 45;
-      score += highCount * 18;
       if (criticalCount >= 1) {
         score = Math.max(score, 82);
+      } else if (highCount >= 1) {
+        score = Math.max(score, 65);
       }
-      if (hasSuspiciousDomain) score += 30;
-      const hasRegDiscrepancy = entityVerifications.some(v => v.status === 'Unverified / Discrepancy');
-      if (hasRegDiscrepancy) score += 20;
+      if (hasSuspiciousDomain) score = Math.max(score, 75);
 
       if (classificationReport.category === 'Promotional') {
         heuristicScore = Math.min(Math.max(score, 25), 50);
@@ -284,15 +309,16 @@ export function runSangyanAnalysis(
         if (criticalCount >= 1) {
           heuristicScore = Math.min(Math.max(score, 82), 96);
           overallAssessment = 'Critical';
-        } else if (highCount >= 1 || extractedClaims.paymentRequests.length > 0) {
+        } else if (highCount >= 1) {
           heuristicScore = Math.min(Math.max(score, 65), 90);
           overallAssessment = 'High';
         } else {
-          heuristicScore = 35;
-          overallAssessment = 'Needs Verification';
+          // Insufficient evidence without critical/high patterns: use evidence engine calibrated score
+          heuristicScore = evidenceEngineResult.calibratedScore;
+          overallAssessment = evidenceEngineResult.overallAssessment;
         }
         heuristicScoreDisclaimer =
-          'Unverified financial communication with insufficient evidence. Independent regulatory verification on sebi.gov.in is strongly recommended.';
+          'Financial communication evaluated by evidence-first scoring. Independent regulatory verification on sebi.gov.in is recommended.';
       } else {
         heuristicScore = Math.min(Math.max(score, 5), 96);
         if (heuristicScore >= 80) {
@@ -1015,6 +1041,17 @@ export function runSangyanAnalysis(
     safeNextSteps,
     complaintDraft,
     semanticArchetype,
-    threatTelemetry
+    threatTelemetry,
+    // Evidence-First Engine Extensions
+    fraudTaxonomy: evidenceEngineResult.fraudTaxonomy,
+    fraudRisk: evidenceEngineResult.fraudRisk,
+    financialRelevanceLevel: evidenceEngineResult.financialRelevanceLevel,
+    negativeEvidence: evidenceEngineResult.negativeEvidence,
+    negativeEvidenceHi: evidenceEngineResult.negativeEvidenceHi,
+    positiveEvidence: evidenceEngineResult.positiveEvidence,
+    positiveEvidenceHi: evidenceEngineResult.positiveEvidenceHi,
+    requestedAction: evidenceEngineResult.requestedAction,
+    impersonationDetected: evidenceEngineResult.impersonationDetected,
+    featureGroupBreakdown: evidenceEngineResult.featureGroupBreakdown
   };
 }

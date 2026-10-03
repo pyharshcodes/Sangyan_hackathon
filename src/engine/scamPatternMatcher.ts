@@ -82,6 +82,8 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
       lower.includes('100% loss-free') ||
       lower.includes('assured profit') ||
       lower.includes('assured return') ||
+      /assured\s+(?:\w+\s+)?return/i.test(lower) ||
+      /\d{1,4}%\s*(?:assured|guaranteed|fixed)?\s*(?:monthly|daily|weekly|annual|yearly)?\s*(?:return|profit|interest|gain)/i.test(lower) ||
       /(\d{1,4}%)\s*(profit|return|interest|gain|potential)/i.test(lower) ||
       /(guaranteed|assured|fixed)\s*(\d{1,4}%\s*)?(profit|return|interest|gain|allocation)/i.test(lower) ||
       lower.includes('पक्का मुनाफा') ||
@@ -104,6 +106,8 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
   const hasFakeAuthContext =
     lower.includes('sebi registered vip') ||
     lower.includes('sebi guaranteed') ||
+    lower.includes('forged sebi') ||
+    (lower.includes('securities and exchange board of india') && (lower.includes('certifies') || lower.includes('fund') || lower.includes('return') || lower.includes('assured') || lower.includes('vip'))) ||
     lower.includes('special window circular') ||
     lower.includes('nsdl star pool') ||
     lower.includes('sebi investor compensation pool') ||
@@ -124,8 +128,7 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     lower.includes('be a smart investor') ||
     lower.includes('consult a sebi registered intermediary') ||
     lower.includes('for more investor education resources') ||
-    lower.includes('securities and exchange board of india') ||
-    lower.includes('sebi.gov.in') ||
+    (lower.includes('securities and exchange board of india') && lower.includes('sebi.gov.in') && !lower.includes('certifies') && !lower.includes('assured') && !lower.includes('forged')) ||
     lower.includes('azadi ka amrit mahotsav') ||
     lower.includes('understand. verify. invest wisely') ||
     lower.includes('be careful of unsolicited tips') ||
@@ -175,13 +178,28 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
   }
 
   // Pattern 4: Phishing & Demat / Bank Account Suspension Threats
+  const isRoutineBrokerReKyc =
+    (lower.includes('re-kyc') || lower.includes('rekyc') || lower.includes('quarterly re-kyc')) &&
+    (lower.includes('mobile app') || lower.includes('web portal') || lower.includes('kite') || lower.includes('official app')) &&
+    !lower.includes('http') &&
+    !lower.includes('.top') &&
+    !lower.includes('.xyz') &&
+    !lower.includes('frozen') &&
+    !lower.includes('auctioned') &&
+    !lower.includes('within 2 hours') &&
+    !lower.includes('within 24 hours') &&
+    !lower.includes('immediate');
+
   const hasAccountFreezePhishing =
     lower.includes('demat trading account has been temporarily blocked') ||
-    /(demat|trading|broker|account|yono)\s*(?:will be|has been|is)?\s*(?:temporarily\s*)?(suspended|blocked|frozen|locked)/i.test(lower) ||
+    /(demat|trading|broker|account|yono)\s*(?:will be|has been|is)?\s*(?:temporarily\s*)?(suspended|blocked|frozen|locked|unblocked|unfrozen)/i.test(lower) ||
+    /(?:डीमैट|खाता|अकाउंट|ट्रेडिंग)\s*(?:अगले\s*\d+\s*(?:घंटे|दिन)\s*में)?\s*.*(?:बंद|ब्लॉक|सस्पेंड|फ्रीज)/iu.test(lower) ||
+    /(?:बंद|ब्लॉक|सस्पेंड)\s*कर\s*दिया\s*जाएगा/iu.test(lower) ||
+    /(?:वरना|अन्यथा)\s*ट्रेडिंग\s*.*रुक\s*जाएगी/iu.test(lower) ||
     lower.includes('account will be suspended') ||
+    lower.includes('account will be unblocked') ||
     lower.includes('permanent account blockage') ||
-    lower.includes('re-kyc') ||
-    lower.includes('rekyc') ||
+    ((lower.includes('re-kyc') || lower.includes('rekyc')) && !isRoutineBrokerReKyc) ||
     lower.includes('incomplete kyc') ||
     lower.includes('kyc has expired') ||
     lower.includes('verify your pan') ||
@@ -196,7 +214,7 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     lower.includes('ব্লক কৰা হৈছে') ||
     lower.includes('পেন কাৰ্ড আপডেট');
 
-  if (hasAccountFreezePhishing) {
+  if (hasAccountFreezePhishing && !isRoutineBrokerReKyc) {
     indicators.push({
       id: 'pattern-kyc-phishing',
       category: 'Impersonation',
@@ -248,7 +266,15 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
     (lower.includes('whatsapp') && (lower.includes('vip') || lower.includes('tip') || lower.includes('group') || lower.includes('call') || lower.includes('profit') || lower.includes('invest') || lower.includes('circuit') || lower.includes('join') || lower.includes('channel') || lower.includes('link'))) ||
     (lower.includes('telegram') && (lower.includes('vip') || lower.includes('tip') || lower.includes('channel') || lower.includes('group') || lower.includes('call') || lower.includes('profit') || lower.includes('invest') || lower.includes('circuit') || lower.includes('join') || lower.includes('link')));
 
-  if (hasVipGroupContext) {
+  const isVipAdvisoryWarning =
+    lower.includes('beware of unsolicited') ||
+    lower.includes('sebi advisory') ||
+    lower.includes('be careful of unsolicited') ||
+    lower.includes('investor education') ||
+    lower.includes('investor awareness') ||
+    lower.includes('never join');
+
+  if (hasVipGroupContext && !isVipAdvisoryWarning) {
     indicators.push({
       id: 'pattern-vip-group',
       category: 'Unregistered',
@@ -264,6 +290,10 @@ export function detectScamPatterns(text: string): RiskIndicator[] {
   // Pattern 7: Withdrawal Fee / Advance Tax Trap
   if (
     lower.includes('withdrawal pending') ||
+    lower.includes('withdrawal blocked') ||
+    lower.includes('clearance tax') ||
+    lower.includes('advance clearance') ||
+    lower.includes('unlock withdrawal') ||
     lower.includes('accrued profit balance') ||
     lower.includes('to release your funds') ||
     lower.includes('release your funds') ||

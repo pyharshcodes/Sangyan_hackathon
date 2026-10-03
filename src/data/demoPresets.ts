@@ -2,6 +2,19 @@ import { DemoPreset } from '../types';
 
 export const DEMO_PRESETS: DemoPreset[] = [
   {
+    id: 'p0-electricity-bill-safe',
+    title: 'P0: Legitimate Utility Bill Reminder (Safe / Benign Control)',
+    titleHi: 'P0: सामान्य बिजली बिल सूचना (सुरक्षित / नकारात्मक साक्ष्य)',
+    titleBn: 'P0: স্বাভাবিক বিদ্যুৎ বিল বিজ্ঞপ্তি (নিরাপদ / কোনো ঝুঁকি নেই)',
+    titleAs: 'P0: স্বাভাৱিক বিদ্যুৎ বিল সূচনা (সুৰক্ষিত / কোনো বিপদ নাই)',
+    shortDesc: '🟢 Low Risk (Score < 20): Routine utility bill advising payment via official app. Zero scam signals.',
+    shortDescBn: '🟢 কম ঝুঁকি: সাধারণ বিদ্যুৎ বিল ও অফিসিয়াল অ্যাপের মাধ্যমে অর্থপ্রদানের পরামর্শ।',
+    shortDescAs: '🟢 কম আশংকা: নিয়মীয়া বিদ্যুৎ বিল আৰু অফিচিয়েল এপৰ পৰামৰ্শ।',
+    category: 'Legitimate Routine Bill',
+    type: 'text',
+    content: `Your electricity bill of ₹1,248 is due on 8 October. Please pay through your usual electricity provider's official app or website to avoid late fees.`
+  },
+  {
     id: 'p1-fake-sebi-guarantee',
     title: 'P1: Fake SEBI / Guaranteed 300% Return',
     titleHi: 'P1: फ़र्ज़ी सेबी / 300% गारंटीड रिटर्न स्कैम',
